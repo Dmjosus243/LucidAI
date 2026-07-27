@@ -4,6 +4,9 @@ import asyncio
 from agents.orchestrator import orchestrator
 from main import temp_storage
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 analysis_storage = {}
@@ -16,23 +19,21 @@ async def start_analysis(file_id: str):
     analysis_id = str(uuid.uuid4())
     data = temp_storage[file_id]
     
-    # Lancer l'orchestrateur en arrière-plan (simulé)
-    # Pour le MVP, on exécute de manière synchrone, mais avec un timeout pour éviter le blocage
     try:
-        result = orchestrator.run(data["df"], data["filename"])
+        result = await asyncio.to_thread(orchestrator.run, data["df"], data["filename"])
         analysis_storage[analysis_id] = {
             "status": "done",
             "result": result,
             "filename": data["filename"]
         }
-        # Nettoyer le stockage temporaire
         del temp_storage[file_id]
         
         return JSONResponse({
             "analysis_id": analysis_id,
-            "status": "processing"  # On simule une tâche asynchrone
+            "status": "processing"
         })
     except Exception as e:
+        logger.error("Erreur d'analyse pour %s : %s", file_id, e)
         raise HTTPException(500, f"Erreur d'analyse: {str(e)}")
 
 @router.get("/results/{analysis_id}")

@@ -1,14 +1,31 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 
+export interface Anomaly {
+  type: string;
+  severity: "critical" | "high" | "medium" | "low";
+  description: string;
+  reference?: Record<string, unknown>;
+}
+
+export interface AnalysisResult {
+  status: "done" | "pending";
+  risk_score: number;
+  anomalies: Anomaly[];
+  report_path: string;
+  filename: string;
+}
+
+type AnalysisStatus = "idle" | "uploading" | "analyzing" | "done" | "error";
+
 interface AnalysisContextType {
   fileId: string | null;
   analysisId: string | null;
-  results: any | null;
-  status: "idle" | "uploading" | "analyzing" | "done" | "error";
+  results: AnalysisResult | null;
+  status: AnalysisStatus;
   setFileId: (id: string) => void;
   setAnalysisId: (id: string) => void;
-  setResults: (data: any) => void;
-  setStatus: (status: any) => void;
+  setResults: (data: AnalysisResult) => void;
+  setStatus: (status: AnalysisStatus) => void;
 }
 
 const AnalysisContext = createContext<AnalysisContextType | undefined>(undefined);
@@ -16,8 +33,8 @@ const AnalysisContext = createContext<AnalysisContextType | undefined>(undefined
 export const AnalysisProvider = ({ children }: { children: ReactNode }) => {
   const [fileId, setFileId] = useState<string | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
-  const [results, setResults] = useState<any | null>(null);
-  const [status, setStatus] = useState<"idle" | "uploading" | "analyzing" | "done" | "error">("idle");
+  const [results, setResults] = useState<AnalysisResult | null>(null);
+  const [status, setStatus] = useState<AnalysisStatus>("idle");
 
   return (
     <AnalysisContext.Provider value={{ fileId, analysisId, results, status, setFileId, setAnalysisId, setResults, setStatus }}>

@@ -1,11 +1,19 @@
 import json
+import logging
 from config import config
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.schema import HumanMessage
 
+logger = logging.getLogger(__name__)
+
+FALLBACK_RULES = [
+    "Vérifier les seuils d'approbation",
+    "Vérifier la TVA",
+    "Vérifier les doublons",
+]
+
 def scout_node(state: dict):
     df = state['df']
-    # On prend un échantillon des colonnes pour le contexte
     sample = df.head(10).to_string()
     
     try:
@@ -19,14 +27,14 @@ def scout_node(state: dict):
         Réponds en JSON : {{"rules": ["règle 1", "règle 2", "règle 3"]}}
         """
         response = llm.invoke([HumanMessage(content=prompt)])
-        # Fallback si le JSON est mal formé
         try:
             data = json.loads(response.content)
-            state['rules'] = data.get("rules", [])
-        except:
-            state['rules'] = ["Vérifier les seuils d'approbation", "Vérifier la TVA", "Vérifier les doublons"]
+            state['rules'] = data.get("rules", FALLBACK_RULES)
+        except json.JSONDecodeError as e:
+            logger.warning("Réponse LLM non-JSON, fallback utilisé : %s", e)
+            state['rules'] = FALLBACK_RULES
     except Exception as e:
-        # Mode dégradé si pas de clé API
-        state['rules'] = ["Vérifier les seuils d'approbation", "Vérifier la TVA", "Vérifier les doublons"]
+        logger.error("Erreur Regulatory Scout (mode dégradé) : %s", e)
+        state['rules'] = FALLBACK_RULES
     
     return state

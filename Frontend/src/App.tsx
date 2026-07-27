@@ -1,5 +1,5 @@
-import { AnalysisProvider } from "./context/AnalysisContext";
-import { Dashboard } from "./pages/Dashboard";
+import { AnalysisProvider } from "./Services/Context/AnalyseCont";
+import { Dashboard } from "./Pages/Dashboard";
 
 function App() {
   return (

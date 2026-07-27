@@ -1,6 +1,11 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
-export const Heatmap = ({ data }: { data: any[] }) => {
+interface HeatmapDatum {
+  category: string;
+  risk_level: number;
+}
+
+export const Heatmap = ({ data }: { data: HeatmapDatum[] }) => {
   const chartData = data.length > 0 ? data : [{ category: "Aucune donnée", risk_level: 0 }];
 
   return (

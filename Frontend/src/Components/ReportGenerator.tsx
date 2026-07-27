@@ -1,4 +1,4 @@
-import { downloadReport } from "../services/api";
+import { downloadReport } from "../Services/api";
 
 export const ReportGenerator = ({ analysisId }: { analysisId: string }) => {
   const handleDownload = async () => {
