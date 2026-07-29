@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
 export interface Anomaly {
   type: string;
@@ -9,10 +9,10 @@ export interface Anomaly {
 
 export interface AnalysisResult {
   status: "done" | "pending";
-  risk_score: number;
-  anomalies: Anomaly[];
-  report_path: string;
-  filename: string;
+  risk_score?: number;
+  anomalies?: Anomaly[];
+  report_path?: string;
+  filename?: string;
 }
 
 type AnalysisStatus = "idle" | "uploading" | "analyzing" | "done" | "error";

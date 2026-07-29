@@ -1,11 +1,11 @@
 interface Anomaly {
-  severity: string;
+  severity: "critical" | "high" | "medium" | "low";
   description: string;
   type: string;
 }
 
 export const AnomalyList = ({ anomalies }: { anomalies: Anomaly[] }) => {
-  const severityColors = {
+  const severityColors: Record<Anomaly["severity"], string> = {
     critical: "bg-danger/20 text-danger",
     high: "bg-orange-500/20 text-orange-400",
     medium: "bg-yellow-500/20 text-yellow-400",

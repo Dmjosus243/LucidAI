@@ -18,7 +18,7 @@ export interface AnalysisStartResponse {
 export interface AnalysisResultResponse {
   status: "done" | "pending";
   risk_score?: number;
-  anomalies?: { type: string; severity: string; description: string }[];
+  anomalies?: { type: string; severity: "critical" | "high" | "medium" | "low"; description: string }[];
   report_path?: string;
   filename?: string;
 }

@@ -1,16 +1,7 @@
 from config import config
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.schema import HumanMessage
+from langchain_core.messages import HumanMessage  # <-- IMPORT CORRIGÉ
 import json
-import logging
-
-logger = logging.getLogger(__name__)
-
-FALLBACK_RULES = [
-    "Vérifier les seuils d'approbation",
-    "Vérifier la TVA",
-    "Vérifier les doublons",
-]
 
 def gap_node(state: dict):
     df = state['df']
@@ -38,10 +29,10 @@ def gap_node(state: dict):
                 for a in new_anomalies:
                     a['type'] = "Compliance Gap"
                     anomalies.append(a)
-        except json.JSONDecodeError as e:
-            logger.warning("Réponse LLM non-JSON ignorée : %s", e)
+        except:
+            pass
     except Exception as e:
-        logger.error("Erreur Gap Analyst : %s", e)
+        print(f"Erreur Gap Analyst (mode dégradé): {e}")
     
     state['anomalies'] = anomalies
     return state

@@ -10,7 +10,7 @@ import { uploadFile, startAnalysis, getResults } from "../Services/api";
 const MAX_POLL_ATTEMPTS = 60;
 
 export const Dashboard = () => {
-  const { fileId, analysisId, results, status, setFileId, setAnalysisId, setResults, setStatus } = useAnalysis();
+  const { analysisId, results, status, setFileId, setAnalysisId, setResults, setStatus } = useAnalysis();
   const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
 
   const handleUpload = async (file: File) => {
