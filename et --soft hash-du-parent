@@ -1,0 +1,10 @@
+[33mba4d29f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m feat: Add initial .env file with configuration settings for GEMINI_API_KEY, DATABASE_URL, and other environment variables
+[33m0c7f8a5[m fix: Update .env file to clarify password replacement instruction for Supabase
+[33m10cac19[m fix: Update .env file to clarify password replacement instruction for Supabase
+[33m558dcad[m fix: Remove outdated comment in .env file regarding Supabase password
+[33m19a8a91[m fix: Update .env file with correct GEMINI_API_KEY and DATABASE_URL; improve comments in database.py
+[33m85e93cb[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m feat: Implement database models and initialization functions for organization, profile, and analysis
+[33m182c3bf[m feat: Refactor backend agents and enhance error handling; add storage management for analysis results
+[33m4c1c130[m fix: Update .env file to include DATABASE_URL and ensure SECRET_KEY is properly formatted
+[33m8f92292[m Add new agent modules and API routes for regulatory compliance analysis
+[33m4337093[m feat: Enhance backend error handling and logging; update frontend imports and structure
