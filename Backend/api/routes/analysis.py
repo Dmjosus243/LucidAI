@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 import uuid
 import asyncio
 import logging
+import datetime
 
 from database import get_db, Analysis
 from storage import temp_storage, analysis_storage
@@ -44,7 +45,7 @@ async def start_analysis(
         db_analysis.risk_score = result.get("risk_score", 0.0)
         db_analysis.anomalies = result.get("anomalies", [])
         db_analysis.report_path = result.get("report_path", "")
-        db_analysis.completed_at = db.bind.dialect.datetime.datetime.utcnow()
+        db_analysis.completed_at = datetime.datetime.utcnow()
         db.commit()
         
         analysis_storage[analysis_id] = {

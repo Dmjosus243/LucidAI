@@ -12,11 +12,12 @@ export const Register = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     try {
       await register(email, password, fullName);
       navigate("/");
-    } catch {
-      setError("Erreur lors de l'inscription");
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || "Erreur lors de l'inscription");
     }
   };
 

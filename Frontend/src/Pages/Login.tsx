@@ -11,11 +11,12 @@ export const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     try {
       await login(email, password);
       navigate("/");
-    } catch {
-      setError("Email ou mot de passe incorrect");
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || "Email ou mot de passe incorrect");
     }
   };
 
