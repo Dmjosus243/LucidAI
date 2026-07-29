@@ -7,15 +7,17 @@ import uuid
 
 from database import get_db
 from storage import temp_storage
+from api.dependencies import get_current_user
+from database import Profile
 
 router = APIRouter()
 
 @router.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: Profile = Depends(get_current_user),
 ):
-    # Vérification du format
     allowed = [".csv", ".xlsx", ".xls"]
     if not any(file.filename.endswith(ext) for ext in allowed):
         raise HTTPException(400, "Format non supporté. Utilisez CSV ou Excel.")
@@ -24,17 +26,18 @@ async def upload_file(
         contents = await file.read()
         file_id = str(uuid.uuid4())
         
-        # Lecture du fichier avec Pandas
         if file.filename.endswith(".csv"):
             df = pd.read_csv(io.BytesIO(contents))
         else:
             df = pd.read_excel(io.BytesIO(contents))
         
-        # Nettoyage des noms de colonnes
         df.columns = df.columns.str.strip().str.lower()
         
-        # Stockage en mémoire (centralisé dans storage.py)
-        temp_storage[file_id] = {"df": df, "filename": file.filename}
+        temp_storage[file_id] = {
+            "df": df,
+            "filename": file.filename,
+            "user_id": str(user.id),
+        }
         
         return JSONResponse({
             "file_id": file_id,

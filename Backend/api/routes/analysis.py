@@ -1,27 +1,35 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 import uuid
+import asyncio
+import logging
 
 from database import get_db, Analysis
 from storage import temp_storage, analysis_storage
 from agents.orchestrator import orchestrator
+from api.dependencies import get_current_user
+from database import Profile
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 @router.post("/analyze/{file_id}")
-async def start_analysis(file_id: str, db: Session = Depends(get_db)):
-    # Vérifier si le fichier existe en mémoire
+async def start_analysis(
+    file_id: str,
+    db: Session = Depends(get_db),
+    user: Profile = Depends(get_current_user),
+):
     if file_id not in temp_storage:
         raise HTTPException(404, "Fichier non trouvé ou expiré")
     
     data = temp_storage[file_id]
     analysis_id = str(uuid.uuid4())
     
-    # 1. Sauvegarder le statut "processing" en base de données
     db_analysis = Analysis(
         id=analysis_id,
-        user_id="11111111-1111-1111-1111-111111111111",  # Pour le MVP, on fixe un user démo
-        organization_id=None,  # On laisse vide pour le moment
+        user_id=user.id,
+        organization_id=user.organization_id,
         file_id=file_id,
         filename=data["filename"],
         status="processing"
@@ -30,24 +38,21 @@ async def start_analysis(file_id: str, db: Session = Depends(get_db)):
     db.commit()
     
     try:
-        # 2. Lancer l'orchestrateur LangGraph (les 4 agents)
-        result = orchestrator.run(data["df"], data["filename"])
+        result = await asyncio.to_thread(orchestrator.run, data["df"], data["filename"])
         
-        # 3. Mettre à jour la base avec les résultats
         db_analysis.status = "done"
         db_analysis.risk_score = result.get("risk_score", 0.0)
         db_analysis.anomalies = result.get("anomalies", [])
         db_analysis.report_path = result.get("report_path", "")
+        db_analysis.completed_at = db.bind.dialect.datetime.datetime.utcnow()
         db.commit()
         
-        # 4. Stocker l'analyse en mémoire pour un accès rapide (optionnel)
         analysis_storage[analysis_id] = {
             "status": "done",
             "result": result,
             "filename": data["filename"]
         }
         
-        # 5. Nettoyer la mémoire temporaire
         del temp_storage[file_id]
         
         return {"analysis_id": analysis_id, "status": "processing"}
@@ -55,11 +60,15 @@ async def start_analysis(file_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         db_analysis.status = "error"
         db.commit()
+        logger.error("Erreur d'analyse pour %s : %s", file_id, e)
         raise HTTPException(500, f"Erreur d'analyse: {str(e)}")
 
 @router.get("/results/{analysis_id}")
-async def get_results(analysis_id: str, db: Session = Depends(get_db)):
-    # 1. Chercher d'abord en mémoire (pour les analyses en cours)
+async def get_results(
+    analysis_id: str,
+    db: Session = Depends(get_db),
+    user: Profile = Depends(get_current_user),
+):
     if analysis_id in analysis_storage:
         data = analysis_storage[analysis_id]
         if data["status"] == "done":
@@ -74,8 +83,10 @@ async def get_results(analysis_id: str, db: Session = Depends(get_db)):
         else:
             return {"status": "pending"}
     
-    # 2. Sinon, chercher en base de données
-    db_analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
+    db_analysis = db.query(Analysis).filter(
+        Analysis.id == analysis_id,
+        Analysis.user_id == user.id
+    ).first()
     if not db_analysis:
         raise HTTPException(404, "Analyse non trouvée")
     
@@ -91,3 +102,29 @@ async def get_results(analysis_id: str, db: Session = Depends(get_db)):
         return {"status": "pending"}
     else:
         return {"status": db_analysis.status, "error": "Une erreur est survenue"}
+
+@router.get("/history")
+async def get_history(
+    db: Session = Depends(get_db),
+    user: Profile = Depends(get_current_user),
+    skip: int = 0,
+    limit: int = 20,
+):
+    analyses = (
+        db.query(Analysis)
+        .filter(Analysis.user_id == user.id)
+        .order_by(Analysis.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "id": str(a.id),
+            "filename": a.filename,
+            "status": a.status,
+            "risk_score": a.risk_score,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+        }
+        for a in analyses
+    ]

@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, String, Integer, Float, JSON, DateTime, Text, ForeignKey
+from sqlalchemy import create_engine, Column, String, Integer, Float, JSON, DateTime, Text, ForeignKey, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from config import config
@@ -39,6 +39,8 @@ class Profile(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True)
     organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True)
+    email = Column(String, unique=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
     full_name = Column(String)
     role = Column(String, default="auditor")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)

@@ -1,14 +1,21 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import FileResponse
+from sqlalchemy.orm import Session
 import os
 
+from database import get_db, Analysis
 from storage import analysis_storage
+from api.dependencies import get_current_user
+from database import Profile
 
 router = APIRouter()
 
 @router.get("/report/{analysis_id}/pdf")
-async def download_report(analysis_id: str):
-    # 1. Vérifier en mémoire (pour les analyses récentes)
+async def download_report(
+    analysis_id: str,
+    db: Session = Depends(get_db),
+    user: Profile = Depends(get_current_user),
+):
     if analysis_id in analysis_storage:
         data = analysis_storage[analysis_id]
         if data["status"] == "done":
@@ -19,8 +26,22 @@ async def download_report(analysis_id: str):
                     media_type="application/pdf",
                     filename=f"lucidai_audit_{analysis_id}.pdf"
                 )
-            else:
-                raise HTTPException(404, "Rapport PDF non trouvé sur le serveur")
-    
-    # 2. Sinon, on pourrait chercher en base, mais pour le MVP on s'arrête là
-    raise HTTPException(404, "Analyse non trouvée ou rapport non généré")
+
+    db_analysis = db.query(Analysis).filter(
+        Analysis.id == analysis_id,
+        Analysis.user_id == user.id
+    ).first()
+    if not db_analysis:
+        raise HTTPException(404, "Analyse non trouvée")
+    if db_analysis.status != "done":
+        raise HTTPException(400, "Analyse pas encore terminée")
+
+    report_path = db_analysis.report_path
+    if not report_path or not os.path.exists(report_path):
+        raise HTTPException(404, "Rapport PDF non trouvé sur le serveur")
+
+    return FileResponse(
+        report_path,
+        media_type="application/pdf",
+        filename=f"lucidai_audit_{analysis_id}.pdf"
+    )
