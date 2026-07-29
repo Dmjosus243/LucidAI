@@ -6,7 +6,7 @@ import datetime
 import uuid
 from sqlalchemy.dialects.postgresql import UUID
 
-# Récupérer l'URL depuis le .env
+# Récupérer l'URL depuis le .env (via config.py)
 SQLALCHEMY_DATABASE_URL = config.DATABASE_URL
 
 # Connexion à la base (avec SSL pour Supabase)
@@ -31,20 +31,18 @@ class Organization(Base):
     subscription_tier = Column(String, default="free")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     
-    # Relations
     users = relationship("Profile", back_populates="organization")
     analyses = relationship("Analysis", back_populates="organization")
 
 class Profile(Base):
     __tablename__ = "profiles"
     
-    id = Column(UUID(as_uuid=True), primary_key=True)  # == auth.users.id
+    id = Column(UUID(as_uuid=True), primary_key=True)
     organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True)
     full_name = Column(String)
     role = Column(String, default="auditor")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     
-    # Relations
     organization = relationship("Organization", back_populates="users")
     analyses = relationship("Analysis", back_populates="user")
 
@@ -63,7 +61,6 @@ class Analysis(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
     
-    # Relations
     user = relationship("Profile", back_populates="analyses")
     organization = relationship("Organization", back_populates="analyses")
 
@@ -71,18 +68,15 @@ class Analysis(Base):
 def init_db():
     """
     Crée les tables si elles n'existent pas déjà.
-    À appeler au démarrage de l'application (dans main.py).
     """
     try:
         Base.metadata.create_all(bind=engine)
-        print("✅ Tables vérifiées/créées avec succès (Supabase).")
+        print("✅ Base de données connectée avec succès.")
     except Exception as e:
-        print(f"⚠️ Erreur lors de la création des tables : {e}")
-        print("   Assurez-vous que les tables existent déjà dans Supabase.")
+        print(f"⚠️ Erreur de connexion : {e}")
 
 # ---------- FONCTION POUR OBTENIR UNE SESSION ----------
 def get_db():
-    """Générateur pour obtenir une session (utilisé dans les routes API)"""
     db = SessionLocal()
     try:
         yield db
