@@ -94,9 +94,9 @@ def init_db():
             
             conn.commit()
         
-        print("✅ Base de données connectée avec succès.")
+        print("[OK] Base de donnees connectee avec succes.")
     except Exception as e:
-        print(f"⚠️ Erreur de connexion : {e}")
+        print(f"[ERREUR] Connexion a la base : {e}")
 
 # ---------- FONCTION POUR OBTENIR UNE SESSION ----------
 def get_db():
