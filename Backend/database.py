@@ -77,7 +77,17 @@ def init_db():
         # Migration : ajouter les colonnes manquantes si la table existe déjà
         with engine.connect() as conn:
             inspector = sqlalchemy_inspect(engine)
-            
+
+            # Supprimer la contrainte FK "profiles_id_fkey" qui lie profiles.id -> users
+            # (table legacy de Supabase, incompatible avec nos UUID auto-générés)
+            if "profiles" in inspector.get_table_names():
+                rows = conn.execute(text(
+                    "SELECT conname FROM pg_constraint WHERE conrelid = 'profiles'::regclass "
+                    "AND contype = 'f' AND conname LIKE 'profiles_id_fkey%'"
+                )).fetchall()
+                for row in rows:
+                    conn.execute(text(f'ALTER TABLE profiles DROP CONSTRAINT "{row[0]}"'))
+
             # Ajouter email + hashed_password à profiles si absents
             if "profiles" in inspector.get_table_names():
                 profiles_cols = {c["name"] for c in inspector.get_columns("profiles")}
@@ -85,13 +95,13 @@ def init_db():
                     conn.execute(text("ALTER TABLE profiles ADD COLUMN email VARCHAR UNIQUE NOT NULL DEFAULT ''"))
                 if "hashed_password" not in profiles_cols:
                     conn.execute(text("ALTER TABLE profiles ADD COLUMN hashed_password VARCHAR NOT NULL DEFAULT ''"))
-            
+
             # Ajouter completed_at à analyses si absent
             if "analyses" in inspector.get_table_names():
                 analyses_cols = {c["name"] for c in inspector.get_columns("analyses")}
                 if "completed_at" not in analyses_cols:
                     conn.execute(text("ALTER TABLE analyses ADD COLUMN completed_at TIMESTAMP"))
-            
+
             conn.commit()
         
         print("[OK] Base de donnees connectee avec succes.")
