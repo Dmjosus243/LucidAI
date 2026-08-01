@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, String, Integer, Float, JSON, DateTime, Text, ForeignKey, Boolean, text, inspect as sqlalchemy_inspect
+from sqlalchemy import create_engine, Column, String, Integer, Float, JSON, DateTime, Text, ForeignKey, Boolean, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from config import config
@@ -69,41 +69,21 @@ class Analysis(Base):
 # ---------- FONCTION D'INITIALISATION ----------
 def init_db():
     """
-    Crée les tables et ajoute les colonnes manquantes si nécessaire.
+    Crée les tables et applique les migrations minimales.
     """
     try:
         Base.metadata.create_all(bind=engine)
-        
-        # Migration : ajouter les colonnes manquantes si la table existe déjà
+    except Exception as e:
+        print(f"[WARN] create_all: {e}")
+
+    try:
+        # Migrations robustes : pas d'introspection (évite les timeouts sur le pooler Supabase)
         with engine.connect() as conn:
-            inspector = sqlalchemy_inspect(engine)
-
-            # Supprimer la contrainte FK "profiles_id_fkey" qui lie profiles.id -> users
-            # (table legacy de Supabase, incompatible avec nos UUID auto-générés)
-            if "profiles" in inspector.get_table_names():
-                rows = conn.execute(text(
-                    "SELECT conname FROM pg_constraint WHERE conrelid = 'profiles'::regclass "
-                    "AND contype = 'f' AND conname LIKE 'profiles_id_fkey%'"
-                )).fetchall()
-                for row in rows:
-                    conn.execute(text(f'ALTER TABLE profiles DROP CONSTRAINT "{row[0]}"'))
-
-            # Ajouter email + hashed_password à profiles si absents
-            if "profiles" in inspector.get_table_names():
-                profiles_cols = {c["name"] for c in inspector.get_columns("profiles")}
-                if "email" not in profiles_cols:
-                    conn.execute(text("ALTER TABLE profiles ADD COLUMN email VARCHAR UNIQUE NOT NULL DEFAULT ''"))
-                if "hashed_password" not in profiles_cols:
-                    conn.execute(text("ALTER TABLE profiles ADD COLUMN hashed_password VARCHAR NOT NULL DEFAULT ''"))
-
-            # Ajouter completed_at à analyses si absent
-            if "analyses" in inspector.get_table_names():
-                analyses_cols = {c["name"] for c in inspector.get_columns("analyses")}
-                if "completed_at" not in analyses_cols:
-                    conn.execute(text("ALTER TABLE analyses ADD COLUMN completed_at TIMESTAMP"))
-
+            conn.execute(text("ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey"))
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS email VARCHAR"))
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS hashed_password VARCHAR"))
+            conn.execute(text("ALTER TABLE analyses ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP"))
             conn.commit()
-        
         print("[OK] Base de donnees connectee avec succes.")
     except Exception as e:
         print(f"[ERREUR] Connexion a la base : {e}")
