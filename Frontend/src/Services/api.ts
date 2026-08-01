@@ -38,6 +38,52 @@ export interface HistoryItem {
   created_at: string;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  is_active: boolean;
+  organization_id: string | null;
+  created_at?: string;
+  temporary_password?: string;
+}
+
+export interface OrganizationInfo {
+  id: string;
+  name: string;
+  subscription_tier: string;
+  created_at?: string;
+  member_count?: number;
+}
+
+export interface AuditLogItem {
+  id: string;
+  user_id: string | null;
+  action: string;
+  details: Record<string, unknown>;
+  ip_address?: string;
+  created_at?: string;
+}
+
+export interface AdminStats {
+  total_users: number;
+  total_organizations: number;
+  total_analyses: number;
+  avg_risk_score: number;
+  organizations_by_tier: Record<string, number>;
+  users_by_role: Record<string, number>;
+}
+
+export interface OrgAnalysis {
+  id: string;
+  filename: string;
+  status: string;
+  risk_score: number;
+  user_id: string;
+  created_at: string;
+}
+
 export const uploadFile = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -60,4 +106,40 @@ export const downloadReport = async (analysisId: string) => {
 
 export const getHistory = async (skip = 0, limit = 20) => {
   return api.get<HistoryItem[]>("/history", { params: { skip, limit } });
+};
+
+export const getUsers = async () => {
+  return api.get<User[]>("/users");
+};
+
+export const inviteUser = async (data: { email: string; full_name: string; role: string; password?: string }) => {
+  return api.post<User>("/users", data);
+};
+
+export const updateUser = async (userId: string, data: { role?: string; is_active?: boolean; full_name?: string }) => {
+  return api.patch<User>(`/users/${userId}`, data);
+};
+
+export const deleteUser = async (userId: string) => {
+  return api.delete(`/users/${userId}`);
+};
+
+export const getOrganization = async () => {
+  return api.get<OrganizationInfo | null>("/organizations/me");
+};
+
+export const updateOrganization = async (data: { name?: string; subscription_tier?: string }) => {
+  return api.patch<OrganizationInfo>("/organizations/me", data);
+};
+
+export const getOrgAnalyses = async () => {
+  return api.get<OrgAnalysis[]>("/analyses/org");
+};
+
+export const getAuditLogs = async (limit = 100) => {
+  return api.get<AuditLogItem[]>("/audit-logs", { params: { limit } });
+};
+
+export const getAdminStats = async () => {
+  return api.get<AdminStats>("/admin/stats");
 };

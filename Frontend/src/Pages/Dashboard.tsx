@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAnalysis } from "../Services/Context/AnalyseCont";
-import { useAuth } from "../Services/Context/AuthContext";
+import { Layout } from "../Components/Layout";
 import { UploadZone } from "../Components/UploadZone";
 import { RiskScoreCard } from "../Components/RiskScoreCard";
 import { AnomalyList } from "../Components/AnomalyList";
@@ -14,8 +13,6 @@ const MAX_POLL_ATTEMPTS = 60;
 
 export const Dashboard = () => {
   const { analysisId, results, status, setFileId, setAnalysisId, setResults, setStatus } = useAnalysis();
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
@@ -80,24 +77,8 @@ export const Dashboard = () => {
     : [];
 
   return (
-    <div className="min-h-screen p-6 md:p-12">
-      <header className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center font-bold text-dark">L</div>
-          <h1 className="text-2xl font-bold text-white">LucidAI</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-400">{user?.full_name}</span>
-          <button
-            onClick={() => { logout(); navigate("/login"); }}
-            className="text-sm text-gray-500 hover:text-danger transition-colors"
-          >
-            Déconnexion
-          </button>
-        </div>
-      </header>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+    <Layout>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <UploadZone onUpload={handleUpload} isLoading={status === "uploading" || status === "analyzing"} />
           
@@ -152,6 +133,6 @@ export const Dashboard = () => {
           </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };

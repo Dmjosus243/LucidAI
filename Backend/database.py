@@ -43,6 +43,8 @@ class Profile(Base):
     hashed_password = Column(String, nullable=False)
     full_name = Column(String)
     role = Column(String, default="auditor")
+    is_active = Column(Boolean, default=True)
+    invited_by = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     organization = relationship("Organization", back_populates="users")
@@ -66,6 +68,18 @@ class Analysis(Base):
     user = relationship("Profile", back_populates="analyses")
     organization = relationship("Organization", back_populates="analyses")
 
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=True)
+    action = Column(String, nullable=False)
+    details = Column(JSON, default={})
+    ip_address = Column(String)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    user = relationship("Profile")
+
 # ---------- FONCTION D'INITIALISATION ----------
 def init_db():
     """
@@ -82,6 +96,8 @@ def init_db():
             conn.execute(text("ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey"))
             conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS email VARCHAR"))
             conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS hashed_password VARCHAR"))
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE"))
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS invited_by UUID"))
             conn.execute(text("ALTER TABLE analyses ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP"))
             conn.commit()
         print("[OK] Base de donnees connectee avec succes.")

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../Services/Context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
+import { Logo } from "../Components/Logo";
 
 export const Register = () => {
   const [email, setEmail] = useState("");
@@ -25,8 +26,7 @@ export const Register = () => {
     <div className="min-h-screen bg-dark flex items-center justify-center p-6">
       <div className="glass rounded-2xl p-8 w-full max-w-md">
         <div className="flex items-center gap-2 mb-8 justify-center">
-          <div className="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center font-bold text-dark">L</div>
-          <h1 className="text-2xl font-bold text-white">LucidAI</h1>
+          <Logo size={40} />
         </div>
         <h2 className="text-lg text-gray-300 mb-6 text-center">Inscription</h2>
         {error && <p className="text-danger text-sm mb-4 text-center">{error}</p>}

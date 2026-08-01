@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.orm import Session
 import uuid
 import asyncio
@@ -9,6 +9,7 @@ from database import get_db, Analysis
 from storage import temp_storage, analysis_storage
 from agents.orchestrator import orchestrator
 from api.dependencies import get_current_user
+from api.audit import log_action
 from database import Profile
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,7 @@ router = APIRouter()
 @router.post("/analyze/{file_id}")
 async def start_analysis(
     file_id: str,
+    request: Request = None,
     db: Session = Depends(get_db),
     user: Profile = Depends(get_current_user),
 ):
@@ -37,6 +39,12 @@ async def start_analysis(
     )
     db.add(db_analysis)
     db.commit()
+
+    log_action(
+        db, str(user.id), "analysis.start",
+        {"filename": data["filename"], "analysis_id": analysis_id},
+        request.client.host if request and request.client else None,
+    )
     
     try:
         result = await asyncio.to_thread(orchestrator.run, data["df"], data["filename"])

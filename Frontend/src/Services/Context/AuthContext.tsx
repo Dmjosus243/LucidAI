@@ -6,6 +6,7 @@ interface User {
   email: string;
   full_name: string;
   role: string;
+  organization_id: string | null;
 }
 
 interface AuthContextType {
@@ -15,6 +16,9 @@ interface AuthContextType {
   register: (email: string, password: string, full_name: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  isOrgAdmin: boolean;
+  isManager: boolean;
+  isSuperAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,6 +27,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
   const [isLoading, setIsLoading] = useState(true);
+
+  const isOrgAdmin = !!user && (user.role === "org_admin" || user.role === "admin" || user.role === "super_admin");
+  const isManager = !!user && (user.role === "manager" || user.role === "org_admin" || user.role === "admin" || user.role === "super_admin");
+  const isSuperAdmin = !!user && user.role === "super_admin";
 
   useEffect(() => {
     if (token) {
@@ -59,7 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, isLoading, isOrgAdmin, isManager, isSuperAdmin }}>
       {children}
     </AuthContext.Provider>
   );

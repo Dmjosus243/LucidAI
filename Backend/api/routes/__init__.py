@@ -1,1 +1,1 @@
-from . import upload, analysis, reports, auth
+from . import upload, analysis, reports, auth, admin

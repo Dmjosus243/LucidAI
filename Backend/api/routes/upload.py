@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import pandas as pd
@@ -8,6 +8,7 @@ import uuid
 from database import get_db
 from storage import temp_storage
 from api.dependencies import get_current_user
+from api.audit import log_action
 from database import Profile
 
 router = APIRouter()
@@ -15,6 +16,7 @@ router = APIRouter()
 @router.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
+    request: Request = None,
     db: Session = Depends(get_db),
     user: Profile = Depends(get_current_user),
 ):
@@ -38,6 +40,12 @@ async def upload_file(
             "filename": file.filename,
             "user_id": str(user.id),
         }
+
+        log_action(
+            db, str(user.id), "file.upload",
+            {"filename": file.filename, "rows": len(df)},
+            request.client.host if request and request.client else None,
+        )
         
         return JSONResponse({
             "file_id": file_id,

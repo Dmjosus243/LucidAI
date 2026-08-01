@@ -39,4 +39,23 @@ def get_current_user(
     user = db.query(Profile).filter(Profile.id == user_id).first()
     if not user:
         raise HTTPException(status_code=401, detail="Utilisateur non trouvé")
+    if user.is_active is False:
+        raise HTTPException(status_code=403, detail="Compte désactivé")
     return user
+
+def is_super_admin(user: Profile) -> bool:
+    return user.role == "super_admin"
+
+def is_org_admin(user: Profile) -> bool:
+    return user.role in ("super_admin", "org_admin", "admin")
+
+def is_manager_or_above(user: Profile) -> bool:
+    return user.role in ("super_admin", "org_admin", "admin", "manager")
+
+def require_org_admin(user: Profile) -> None:
+    if not is_org_admin(user):
+        raise HTTPException(status_code=403, detail="Réservé à l'administrateur de l'organisation")
+
+def require_super_admin(user: Profile) -> None:
+    if not is_super_admin(user):
+        raise HTTPException(status_code=403, detail="Réservé à l'administrateur de la plateforme")
