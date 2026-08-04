@@ -12,7 +12,11 @@ SQLALCHEMY_DATABASE_URL = config.DATABASE_URL
 # Connexion à la base (avec SSL pour Supabase)
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    connect_args={"sslmode": "require"} if "supabase" in SQLALCHEMY_DATABASE_URL else {}
+    connect_args=(
+        {"sslmode": "require", "options": "-c statement_timeout=15000"}
+        if "supabase" in SQLALCHEMY_DATABASE_URL
+        else {}
+    ),
 )
 
 # Session locale pour les requêtes

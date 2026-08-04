@@ -31,4 +31,6 @@ async def health():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    # reload=False pour éviter le respawn du worker (multiprocessing) qui
+    # relance init_db() en parallèle et bloque le pooler Supabase sous Windows
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
