@@ -4,6 +4,7 @@ import { AnalysisProvider } from "./Services/Context/AnalyseCont";
 import { Dashboard } from "./Pages/Dashboard";
 import { Login } from "./Pages/Login";
 import { Register } from "./Pages/Register";
+import { ForgotPassword } from "./Pages/ForgotPassword";
 import { TeamManagement } from "./Pages/TeamManagement";
 import { OrgDashboard } from "./Pages/OrgDashboard";
 import { AdminDashboard } from "./Pages/AdminDashboard";
@@ -31,6 +32,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route
             path="/*"
             element={

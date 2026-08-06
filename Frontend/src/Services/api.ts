@@ -143,3 +143,11 @@ export const getAuditLogs = async (limit = 100) => {
 export const getAdminStats = async () => {
   return api.get<AdminStats>("/admin/stats");
 };
+
+export const forgotPassword = async (email: string) => {
+  return api.post<{ ok: boolean }>("/auth/forgot-password", { email });
+};
+
+export const resetPassword = async (email: string, otp: string, new_password: string) => {
+  return api.post<{ ok: boolean; message: string }>("/auth/reset-password", { email, otp, new_password });
+};

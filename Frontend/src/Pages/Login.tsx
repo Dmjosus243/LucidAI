@@ -50,7 +50,10 @@ export const Login = () => {
             Se connecter
           </button>
         </form>
-        <p className="text-gray-400 text-sm mt-6 text-center">
+        <p className="text-gray-400 text-sm mt-4 text-center">
+          <Link to="/forgot-password" className="text-cyan-400 hover:underline">Mot de passe oublié ?</Link>
+        </p>
+        <p className="text-gray-400 text-sm mt-4 text-center">
           Pas de compte ? <Link to="/register" className="text-cyan-400 hover:underline">S'inscrire</Link>
         </p>
       </div>

@@ -84,6 +84,16 @@ class AuditLog(Base):
     
     user = relationship("Profile")
 
+class PasswordReset(Base):
+    __tablename__ = "password_resets"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)
+    otp = Column(String, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    used = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
 # ---------- FONCTION D'INITIALISATION ----------
 def init_db():
     """
@@ -103,6 +113,16 @@ def init_db():
             conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE"))
             conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS invited_by UUID"))
             conn.execute(text("ALTER TABLE analyses ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP"))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS password_resets (
+                    id UUID PRIMARY KEY,
+                    user_id UUID NOT NULL REFERENCES public.profiles(id),
+                    otp VARCHAR NOT NULL,
+                    expires_at TIMESTAMP NOT NULL,
+                    used BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT now()
+                )
+            """))
             conn.commit()
         print("[OK] Base de donnees connectee avec succes.")
     except Exception as e:
