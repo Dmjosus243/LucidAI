@@ -1,6 +1,4 @@
-from config import config
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import HumanMessage  # <-- IMPORT CORRIGÉ
+from agents.llm import invoke_text
 import json
 
 def gap_node(state: dict):
@@ -14,7 +12,6 @@ def gap_node(state: dict):
     sample = df.head(20).to_string()
     
     try:
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", api_key=config.GEMINI_API_KEY)
         prompt = f"""
         Voici les règles : {rules}
         Voici les données : {sample}
@@ -22,9 +19,9 @@ def gap_node(state: dict):
         Identifie les transactions qui violent ces règles.
         Retourne une liste JSON : [{{"description": "...", "severity": "high"}}]
         """
-        response = llm.invoke([HumanMessage(content=prompt)])
+        content = invoke_text(prompt)
         try:
-            new_anomalies = json.loads(response.content)
+            new_anomalies = json.loads(content)
             if isinstance(new_anomalies, list):
                 for a in new_anomalies:
                     a['type'] = "Compliance Gap"

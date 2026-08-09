@@ -41,7 +41,7 @@ def officer_node(state: dict):
     for idx, anom in enumerate(anomalies[:20]):  # Max 20 pour le rapport
         sev = anom.get('severity', 'unknown').upper()
         desc = anom.get('description', 'No description')
-        pdf.multi_cell(0, 6, f"{idx+1}. [{sev}] {desc}", 0, 1)
+        pdf.multi_cell(0, 6, f"{idx+1}. [{sev}] {desc}", align="L")
     
     if len(anomalies) > 20:
         pdf.cell(40, 10, f"... and {len(anomalies)-20} more anomalies.", 0, 1)

@@ -5,6 +5,7 @@ load_dotenv()
 
 class Config:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
     ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
     SECRET_KEY = os.getenv("SECRET_KEY", "dev_secret_key")

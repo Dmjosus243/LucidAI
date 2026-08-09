@@ -10,6 +10,8 @@ from sqlalchemy.dialects.postgresql import UUID
 SQLALCHEMY_DATABASE_URL = config.DATABASE_URL
 
 # Connexion à la base (avec SSL pour Supabase)
+# pool_pre_ping : vérifie la connexion avant usage (les connexions inactives
+# sont souvent coupées par le pooler Supabase) -> évite les 500 intermittents
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args=(
@@ -17,6 +19,8 @@ engine = create_engine(
         if "supabase" in SQLALCHEMY_DATABASE_URL
         else {}
     ),
+    pool_pre_ping=True,
+    pool_recycle=300,
 )
 
 # Session locale pour les requêtes
