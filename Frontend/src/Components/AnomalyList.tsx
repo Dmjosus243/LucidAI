@@ -4,26 +4,32 @@ interface Anomaly {
   type: string;
 }
 
-export const AnomalyList = ({ anomalies }: { anomalies: Anomaly[] }) => {
-  const severityColors: Record<Anomaly["severity"], string> = {
-    critical: "bg-danger/20 text-danger",
-    high: "bg-orange-500/20 text-orange-400",
-    medium: "bg-yellow-500/20 text-yellow-400",
-    low: "bg-blue-500/20 text-blue-400",
-  };
+const severityBadge: Record<Anomaly["severity"], string> = {
+  critical: "badge-critical",
+  high: "badge-high",
+  medium: "badge-medium",
+  low: "badge-low",
+};
 
+export const AnomalyList = ({ anomalies }: { anomalies: Anomaly[] }) => {
   return (
-    <div className="glass rounded-2xl p-6">
-      <h3 className="text-gray-400 text-sm uppercase tracking-wider mb-4">Anomalies ({anomalies.length})</h3>
-      <div className="max-h-60 overflow-y-auto space-y-2">
+    <div className="card card-hover p-6">
+      <h3 className="section-title mb-4">Anomalies ({anomalies.length})</h3>
+      <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
         {anomalies.slice(0, 10).map((a, i) => (
-          <div key={i} className="flex items-start gap-3 p-2 bg-dark/30 rounded-lg">
-            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${severityColors[a.severity]}`}>
+          <div key={i} className="row flex items-start gap-3 !p-3">
+            <span className={`badge shrink-0 ${severityBadge[a.severity]}`}>
               {a.severity.toUpperCase()}
             </span>
-            <p className="text-sm text-gray-200">{a.description}</p>
+            <div className="min-w-0">
+              {a.type && <p className="text-[11px] text-cyan-400/70 font-medium">{a.type}</p>}
+              <p className="text-sm text-gray-200">{a.description}</p>
+            </div>
           </div>
         ))}
+        {anomalies.length === 0 && (
+          <p className="text-gray-500 text-sm text-center py-6">Aucune anomalie détectée</p>
+        )}
         {anomalies.length > 10 && (
           <p className="text-xs text-gray-500 text-center">+ {anomalies.length - 10} autres anomalies</p>
         )}

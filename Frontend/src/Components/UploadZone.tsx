@@ -7,7 +7,7 @@ const CloudArrowUpIcon = ({ className }: { className?: string }) => (
 );
 
 export const UploadZone = ({ onUpload, isLoading }: { onUpload: (file: File) => void; isLoading: boolean }) => {
-  const { getRootProps, getInputProps } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { "text/csv": [".csv"], "application/vnd.ms-excel": [".xlsx", ".xls"] },
     onDrop: (files) => !isLoading && onUpload(files[0]),
     disabled: isLoading,
@@ -16,15 +16,32 @@ export const UploadZone = ({ onUpload, isLoading }: { onUpload: (file: File) => 
   return (
     <div
       {...getRootProps()}
-      className={`glass rounded-2xl p-12 text-center cursor-pointer transition-all hover:border-cyan-500 border-2 border-dashed ${
-        isLoading ? "border-gray-600 opacity-50" : "border-gray-700"
+      className={`card rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 border-2 border-dashed ${
+        isLoading
+          ? "border-gray-600 opacity-50"
+          : isDragActive
+          ? "border-cyan-400 bg-cyan-500/10 shadow-glow scale-[1.01]"
+          : "border-cyan-500/20 hover:border-cyan-400/60 hover:shadow-glow"
       }`}
     >
       <input {...getInputProps()} />
-      <CloudArrowUpIcon className="w-16 h-16 text-cyan-400 mx-auto mb-4" />
-      <p className="text-lg font-medium text-white">Déposez votre fichier financier</p>
-      <p className="text-gray-400 text-sm mt-2">CSV ou Excel (XLSX, XLS)</p>
-      {isLoading && <div className="mt-4 text-cyan-400">Analyse en cours...</div>}
+      <div className={`w-20 h-20 mx-auto mb-5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center ${isDragActive ? "animate-bounce" : "animate-float"}`}>
+        <CloudArrowUpIcon className="w-10 h-10 text-cyan-400" />
+      </div>
+      <p className="text-lg font-semibold text-white">
+        {isDragActive ? "Relâchez pour analyser" : "Déposez votre fichier financier"}
+      </p>
+      <p className="text-gray-400 text-sm mt-2">ou cliquez pour parcourir — CSV, XLSX, XLS</p>
+      <p className="text-gray-600 text-xs mt-3">Vos données sont analysées par nos agents IA</p>
+      {isLoading && (
+        <div className="mt-5 inline-flex items-center gap-2 text-cyan-400 text-sm">
+          <svg className="w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          Analyse en cours...
+        </div>
+      )}
     </div>
   );
 };
