@@ -102,21 +102,59 @@ class PasswordReset(Base):
 def init_db():
     """
     Crée les tables et applique les migrations minimales.
+
+    On utilise UNIQUEMENT du SQL brut (CREATE TABLE IF NOT EXISTS / ALTER ... IF NOT EXISTS)
+    au lieu de Base.metadata.create_all() : ce dernier fait de l'introspection
+    (has_table) qui est très lente / se bloque sur le pooler Supabase.
     """
     try:
-        Base.metadata.create_all(bind=engine)
-    except Exception as e:
-        print(f"[WARN] create_all: {e}")
-
-    try:
-        # Migrations robustes : pas d'introspection (évite les timeouts sur le pooler Supabase)
         with engine.connect() as conn:
-            conn.execute(text("ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey"))
-            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS email VARCHAR"))
-            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS hashed_password VARCHAR"))
-            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE"))
-            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS invited_by UUID"))
-            conn.execute(text("ALTER TABLE analyses ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP"))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS organizations (
+                    id UUID PRIMARY KEY,
+                    name VARCHAR NOT NULL,
+                    subscription_tier VARCHAR DEFAULT 'free',
+                    created_at TIMESTAMP DEFAULT now()
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS profiles (
+                    id UUID PRIMARY KEY,
+                    organization_id UUID REFERENCES public.organizations(id),
+                    email VARCHAR UNIQUE NOT NULL,
+                    hashed_password VARCHAR NOT NULL,
+                    full_name VARCHAR,
+                    role VARCHAR DEFAULT 'auditor',
+                    is_active BOOLEAN DEFAULT TRUE,
+                    invited_by UUID REFERENCES public.profiles(id),
+                    created_at TIMESTAMP DEFAULT now()
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS analyses (
+                    id UUID PRIMARY KEY,
+                    user_id UUID NOT NULL REFERENCES public.profiles(id),
+                    organization_id UUID REFERENCES public.organizations(id),
+                    file_id VARCHAR,
+                    filename VARCHAR,
+                    status VARCHAR DEFAULT 'pending',
+                    risk_score FLOAT DEFAULT 0,
+                    anomalies JSON DEFAULT '[]',
+                    report_path VARCHAR DEFAULT '',
+                    created_at TIMESTAMP DEFAULT now(),
+                    completed_at TIMESTAMP
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                    id UUID PRIMARY KEY,
+                    user_id UUID REFERENCES public.profiles(id),
+                    action VARCHAR NOT NULL,
+                    details JSON DEFAULT '{}',
+                    ip_address VARCHAR,
+                    created_at TIMESTAMP DEFAULT now()
+                )
+            """))
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS password_resets (
                     id UUID PRIMARY KEY,
@@ -131,6 +169,20 @@ def init_db():
         print("[OK] Base de donnees connectee avec succes.")
     except Exception as e:
         print(f"[ERREUR] Connexion a la base : {e}")
+        return
+
+    try:
+        # Migrations minimales (idempotentes)
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey"))
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS email VARCHAR"))
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS hashed_password VARCHAR"))
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE"))
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS invited_by UUID"))
+            conn.execute(text("ALTER TABLE analyses ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP"))
+            conn.commit()
+    except Exception as e:
+        print(f"[WARN] Migrations : {e}")
 
 # ---------- FONCTION POUR OBTENIR UNE SESSION ----------
 def get_db():
