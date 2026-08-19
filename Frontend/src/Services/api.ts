@@ -93,7 +93,7 @@ export const uploadFile = async (file: File) => {
 };
 
 export const startAnalysis = async (fileId: string) => {
-  return api.post<{ analysis_id: string; status: string }>(`/analyze/${fileId}`);
+  return api.post<{ analysis_id: string; status: string }>(`/analyze/${fileId}`, null, { timeout: 300000 });
 };
 
 export const getResults = async (analysisId: string) => {

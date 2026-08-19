@@ -47,12 +47,17 @@ async def upload_file(
             request.client.host if request and request.client else None,
         )
         
+        preview = df.head(5).copy()
+        for col in preview.columns:
+            if pd.api.types.is_datetime64_any_dtype(preview[col]):
+                preview[col] = preview[col].dt.strftime("%Y-%m-%d %H:%M:%S")
+
         return JSONResponse({
             "file_id": file_id,
             "filename": file.filename,
             "rows": len(df),
             "columns": list(df.columns),
-            "preview": df.head(5).to_dict(orient="records")
+            "preview": preview.to_dict(orient="records")
         })
     except Exception as e:
         raise HTTPException(500, f"Erreur de parsing: {str(e)}")

@@ -25,12 +25,14 @@ export const Dashboard = () => {
   const { analysisId, results, status, setFileId, setAnalysisId, setResults, setStatus } = useAnalysis();
   const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     getHistory().then((res) => setHistory(res.data)).catch(() => {});
   }, []);
 
   const handleUpload = async (file: File) => {
+    setErrorMessage("");
     try {
       setStatus("uploading");
       const res = await uploadFile(file);
@@ -52,22 +54,27 @@ export const Dashboard = () => {
             setStatus("done");
             clearInterval(interval);
             setPollInterval(null);
+            setErrorMessage("");
             getHistory().then((r) => setHistory(r.data)).catch(() => {});
           } else if (attempts >= MAX_POLL_ATTEMPTS) {
             clearInterval(interval);
             setPollInterval(null);
             setStatus("error");
+            setErrorMessage("Le traitement a pris trop de temps. Réessayez.");
           }
         } catch {
           clearInterval(interval);
           setPollInterval(null);
           setStatus("error");
+          setErrorMessage("Erreur lors de la récupération des résultats.");
         }
       }, 2000);
       setPollInterval(interval);
-    } catch (e) {
+    } catch (e: any) {
       setStatus("error");
-      console.error(e);
+      const detail = e?.response?.data?.detail || e?.message || "Erreur inconnue";
+      setErrorMessage(detail);
+      console.error("Upload/analyze error:", e);
     }
   };
 
@@ -121,7 +128,7 @@ export const Dashboard = () => {
           )}
           {status === "error" && (
             <div className="text-danger text-sm bg-danger/10 border border-danger/25 rounded-xl p-4 text-center">
-              Erreur lors du traitement. Vérifiez le fichier.
+              Erreur lors du traitement. {errorMessage || "Vérifiez le fichier."}
             </div>
           )}
 
