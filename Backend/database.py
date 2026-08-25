@@ -21,6 +21,8 @@ engine = create_engine(
     ),
     pool_pre_ping=True,
     pool_recycle=300,
+    pool_timeout=10,
+    max_overflow=5,
 )
 
 # Session locale pour les requêtes
@@ -185,9 +187,27 @@ def init_db():
         print(f"[WARN] Migrations : {e}")
 
 # ---------- FONCTION POUR OBTENIR UNE SESSION ----------
+import time
+import logging
+
+logger = logging.getLogger(__name__)
+
+def _create_session(retries=3, delay=1):
+    for attempt in range(retries):
+        try:
+            db = SessionLocal()
+            db.execute(text("SELECT 1"))
+            return db
+        except Exception as e:
+            logger.warning("DB connection attempt %d failed: %s", attempt + 1, e)
+            time.sleep(delay)
+    raise Exception("Impossible de se connecter à la base de données après %d tentatives" % retries)
+
 def get_db():
-    db = SessionLocal()
+    db = None
     try:
+        db = _create_session()
         yield db
     finally:
-        db.close()
+        if db:
+            db.close()
