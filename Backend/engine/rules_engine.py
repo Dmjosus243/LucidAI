@@ -1,10 +1,16 @@
 import pandas as pd
+import numpy as np
 import logging
 
 logger = logging.getLogger(__name__)
 
 REQUIRED_COLUMNS = ["amount", "date", "vendor"]
 OPTIONAL_COLUMNS = ["tax_rate"]
+
+def _safe_dict(row: pd.Series) -> dict:
+    d = row.to_dict()
+    return {k: (None if isinstance(v, float) and np.isnan(v) else v) for k, v in d.items()}
+
 
 class RulesEngine:
     @staticmethod
@@ -43,7 +49,7 @@ class RulesEngine:
                     "type": "Duplicate Transaction",
                     "severity": "high",
                     "description": f"Transaction en double : {row.get('amount', '?')}€ le {row.get('date', '?')}",
-                    "reference": row.to_dict()
+                    "reference": _safe_dict(row)
                 })
 
         # Règle 2 : Montants ronds suspects (>= 10000, multiple de 1000)
@@ -54,7 +60,7 @@ class RulesEngine:
                     "type": "Large Round Amount",
                     "severity": "medium",
                     "description": f"Montant rond élevé : {row['amount']}€ - Vérifier l'approbation",
-                    "reference": row.to_dict()
+                    "reference": _safe_dict(row)
                 })
 
         # Règle 3 : Écarts de TVA
@@ -65,7 +71,7 @@ class RulesEngine:
                     "type": "Invalid Tax Rate",
                     "severity": "critical",
                     "description": f"Taux de TVA invalide : {row['tax_rate']}%",
-                    "reference": row.to_dict()
+                    "reference": _safe_dict(row)
                 })
 
         # Règle 4 : Fournisseurs non approuvés
@@ -77,7 +83,7 @@ class RulesEngine:
                     "type": "Unapproved Vendor",
                     "severity": "critical",
                     "description": f"Fournisseur non approuvé : {row['vendor']}",
-                    "reference": row.to_dict()
+                    "reference": _safe_dict(row)
                 })
 
         # Règle 5 : Montants négatifs
@@ -88,7 +94,7 @@ class RulesEngine:
                     "type": "Negative Transaction",
                     "severity": "low",
                     "description": f"Transaction négative : {row['amount']}€ - À justifier",
-                    "reference": row.to_dict()
+                    "reference": _safe_dict(row)
                 })
 
         severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}

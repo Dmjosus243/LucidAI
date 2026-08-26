@@ -1,3 +1,4 @@
+import math
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -51,13 +52,18 @@ async def upload_file(
         for col in preview.columns:
             if pd.api.types.is_datetime64_any_dtype(preview[col]):
                 preview[col] = preview[col].dt.strftime("%Y-%m-%d %H:%M:%S")
+        records = preview.to_dict(orient="records")
+        for row in records:
+            for k, v in row.items():
+                if isinstance(v, float) and math.isnan(v):
+                    row[k] = None
 
         return JSONResponse({
             "file_id": file_id,
             "filename": file.filename,
             "rows": len(df),
             "columns": list(df.columns),
-            "preview": preview.to_dict(orient="records")
+            "preview": records
         })
     except Exception as e:
         raise HTTPException(500, f"Erreur de parsing: {str(e)}")
