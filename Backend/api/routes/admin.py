@@ -299,3 +299,25 @@ async def get_admin_stats(
         "organizations_by_tier": {t or "free": c for t, c in by_tier},
         "users_by_role": {r or "auditor": c for r, c in by_role},
     }
+
+
+@router.get("/admin/organizations")
+async def list_all_organizations(
+    db: Session = Depends(get_db),
+    user: Profile = Depends(get_current_user),
+):
+    require_super_admin(user)
+    orgs = db.query(Organization).order_by(Organization.created_at.desc()).all()
+    result = []
+    for org in orgs:
+        members = db.query(Profile).filter(Profile.organization_id == org.id).order_by(Profile.created_at).all()
+        analyses_count = db.query(Analysis).filter(Analysis.organization_id == org.id).count()
+        result.append({
+            "id": str(org.id),
+            "name": org.name,
+            "subscription_tier": org.subscription_tier,
+            "created_at": org.created_at.isoformat() if org.created_at else None,
+            "analyses_count": analyses_count,
+            "members": [serialize_user(m) for m in members],
+        })
+    return result

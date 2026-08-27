@@ -144,6 +144,19 @@ export const getAdminStats = async () => {
   return api.get<AdminStats>("/admin/stats");
 };
 
+export interface OrgWithMembers {
+  id: string;
+  name: string;
+  subscription_tier: string;
+  created_at: string | null;
+  analyses_count: number;
+  members: User[];
+}
+
+export const getAdminOrganizations = async () => {
+  return api.get<OrgWithMembers[]>("/admin/organizations");
+};
+
 export const forgotPassword = async (email: string) => {
   return api.post<{ ok: boolean }>("/auth/forgot-password", { email });
 };

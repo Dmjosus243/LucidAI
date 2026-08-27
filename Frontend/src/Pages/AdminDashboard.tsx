@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Layout } from "../Components/Layout";
-import { getAdminStats, getUsers, getAuditLogs } from "../Services/api";
-import type { AdminStats, User, AuditLogItem } from "../Services/api";
+import { getAdminStats, getAdminOrganizations, getAuditLogs } from "../Services/api";
+import type { AdminStats, OrgWithMembers, AuditLogItem } from "../Services/api";
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: "Super Admin",
@@ -9,6 +9,12 @@ const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
   manager: "Manager",
   auditor: "Auditeur",
+};
+
+const TIER_LABELS: Record<string, string> = {
+  free: "Gratuit",
+  pro: "Pro",
+  enterprise: "Enterprise",
 };
 
 const roleBadge = (role: string) =>
@@ -20,15 +26,23 @@ const roleBadge = (role: string) =>
     ? "badge-warning"
     : "badge-low";
 
+const tierBadge = (tier: string) =>
+  tier === "enterprise"
+    ? "badge-critical"
+    : tier === "pro"
+    ? "badge-warning"
+    : "badge-low";
+
 export const AdminDashboard = () => {
   const [stats, setStats] = useState<AdminStats | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
+  const [orgs, setOrgs] = useState<OrgWithMembers[]>([]);
   const [logs, setLogs] = useState<AuditLogItem[]>([]);
+  const [expandedOrg, setExpandedOrg] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     getAdminStats().then((res) => setStats(res.data)).catch((err) => setError(err?.response?.data?.detail || "Erreur"));
-    getUsers().then((res) => setUsers(res.data)).catch(() => {});
+    getAdminOrganizations().then((res) => setOrgs(res.data)).catch(() => {});
     getAuditLogs(100).then((res) => setLogs(res.data)).catch(() => {});
   }, []);
 
@@ -64,21 +78,83 @@ export const AdminDashboard = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="card p-6">
-          <h3 className="section-title mb-4">Organisations par abonnement</h3>
-          <div className="space-y-2">
-            {Object.entries(stats?.organizations_by_tier ?? {}).map(([tier, count]) => (
-              <div key={tier} className="flex justify-between items-center">
-                <span className="text-sm text-gray-300 capitalize">{tier}</span>
-                <span className="badge-info badge">{count}</span>
-              </div>
-            ))}
-            {(!stats || Object.keys(stats.organizations_by_tier).length === 0) && (
-              <p className="text-gray-500 text-sm">Aucune donnée</p>
-            )}
+      <div className="mb-8">
+        <h2 className="text-lg font-bold text-white mb-4">Organisations ({orgs.length})</h2>
+        {orgs.length === 0 ? (
+          <div className="card p-6"><p className="text-gray-500 text-sm">Aucune organisation</p></div>
+        ) : (
+          <div className="space-y-3">
+            {orgs.map((org) => {
+              const isOpen = expandedOrg === org.id;
+              return (
+                <div key={org.id} className="card overflow-hidden">
+                  <button
+                    onClick={() => setExpandedOrg(isOpen ? null : org.id)}
+                    className="w-full p-5 text-left hover:bg-white/[0.02] transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center text-cyan-400 font-bold text-sm">
+                          {org.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">{org.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {org.members.length} membre{org.members.length > 1 ? "s" : ""} · {org.analyses_count} analyse{org.analyses_count > 1 ? "s" : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`badge ${tierBadge(org.subscription_tier)}`}>
+                          {TIER_LABELS[org.subscription_tier] ?? org.subscription_tier}
+                        </span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </button>
+
+                  {isOpen && (
+                    <div className="border-t border-white/5 p-5">
+                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-semibold">Membres</p>
+                      {org.members.length === 0 ? (
+                        <p className="text-gray-500 text-sm">Aucun membre</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {org.members.map((m) => (
+                            <div key={m.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/[0.02]">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">
+                                  {(m.full_name || m.email).charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm text-white truncate">{m.full_name || "Sans nom"}</p>
+                                  <p className="text-xs text-gray-500 truncate">{m.email}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className={`badge ${roleBadge(m.role)}`}>{ROLE_LABELS[m.role] ?? m.role}</span>
+                                {!m.is_active && <span className="badge badge-critical">Inactif</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card p-6">
           <h3 className="section-title mb-4">Utilisateurs par rôle</h3>
           <div className="space-y-2">
@@ -91,24 +167,6 @@ export const AdminDashboard = () => {
             {(!stats || Object.keys(stats.users_by_role).length === 0) && (
               <p className="text-gray-500 text-sm">Aucune donnée</p>
             )}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card p-6">
-          <h3 className="section-title mb-4">Tous les utilisateurs ({users.length})</h3>
-          <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
-            {users.map((u) => (
-              <div key={u.id} className="row flex justify-between items-center gap-2">
-                <div className="min-w-0">
-                  <p className="text-sm text-white truncate">{u.full_name || u.email}</p>
-                  <p className="text-xs text-gray-500 truncate">{u.email}</p>
-                </div>
-                <span className={`badge shrink-0 ${roleBadge(u.role)}`}>{ROLE_LABELS[u.role] ?? u.role}</span>
-              </div>
-            ))}
-            {users.length === 0 && <p className="text-gray-500 text-sm">Aucun utilisateur</p>}
           </div>
         </div>
 
