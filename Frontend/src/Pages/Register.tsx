@@ -35,7 +35,7 @@ export const Register = () => {
           <label className="text-xs text-gray-400 block mb-1.5">Nom complet</label>
           <input
             type="text"
-            placeholder="Jean Dupont"
+            placeholder=""
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             className="input"
