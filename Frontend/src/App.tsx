@@ -8,6 +8,7 @@ import { ForgotPassword } from "./Pages/ForgotPassword";
 import { TeamManagement } from "./Pages/TeamManagement";
 import { OrgDashboard } from "./Pages/OrgDashboard";
 import { AdminDashboard } from "./Pages/AdminDashboard";
+import { Subscription } from "./Pages/Subscription";
 import type { ReactNode } from "react";
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
@@ -65,6 +66,14 @@ function App() {
               <RoleRoute allowed={(r) => r === "super_admin"}>
                 <AdminDashboard />
               </RoleRoute>
+            }
+          />
+          <Route
+            path="/abonnement"
+            element={
+              <ProtectedRoute>
+                <Subscription />
+              </ProtectedRoute>
             }
           />
         </Routes>

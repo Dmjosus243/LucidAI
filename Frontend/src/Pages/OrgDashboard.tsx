@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Layout } from "../Components/Layout";
-import { getOrganization, updateOrganization, getOrgAnalyses } from "../Services/api";
+import { getOrganization, getOrgAnalyses } from "../Services/api";
 import type { OrganizationInfo, OrgAnalysis } from "../Services/api";
 import { useAuth } from "../Services/Context/AuthContext";
 
-const TIERS = ["free", "pro", "enterprise"];
 const TIER_LABELS: Record<string, string> = { free: "Gratuit", pro: "Pro", enterprise: "Entreprise" };
 
 export const OrgDashboard = () => {
@@ -12,8 +12,6 @@ export const OrgDashboard = () => {
   const [org, setOrg] = useState<OrganizationInfo | null>(null);
   const [analyses, setAnalyses] = useState<OrgAnalysis[]>([]);
   const [error, setError] = useState("");
-  const [saved, setSaved] = useState("");
-  const [name, setName] = useState("");
   const [tier, setTier] = useState("free");
 
   useEffect(() => {
@@ -21,7 +19,6 @@ export const OrgDashboard = () => {
       .then((res) => {
         setOrg(res.data);
         if (res.data) {
-          setName(res.data.name);
           setTier(res.data.subscription_tier);
         }
       })
@@ -31,19 +28,6 @@ export const OrgDashboard = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSaved("");
-    try {
-      const res = await updateOrganization({ name, subscription_tier: tier });
-      setOrg(res.data);
-      setSaved("Organisation mise à jour");
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "Erreur lors de la mise à jour");
-    }
-  };
 
   const statusLabel = (s: string) =>
     s === "done" ? "Terminé" : s === "error" ? "Erreur" : "En cours";
@@ -58,7 +42,6 @@ export const OrgDashboard = () => {
       </div>
 
       {error && <p className="text-danger text-sm mb-4 bg-danger/10 border border-danger/25 p-3 rounded-xl">{error}</p>}
-      {saved && <p className="text-success text-sm mb-4 bg-success/10 border border-success/25 p-3 rounded-xl">{saved}</p>}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="card p-6 h-fit">
@@ -73,39 +56,26 @@ export const OrgDashboard = () => {
           {!org ? (
             <p className="text-gray-500 text-sm">Aucune organisation</p>
           ) : (
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="text-xs text-gray-400 block mb-1.5">Nom</label>
-                <input
-                  type="text"
-                  value={name}
-                  disabled={!isOrgAdmin}
-                  onChange={(e) => setName(e.target.value)}
-                  className="input disabled:opacity-50"
-                />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Nom de l'organisation</p>
+                  <p className="text-sm font-medium text-white">{org.name}</p>
+                </div>
               </div>
-              <div>
-                <label className="text-xs text-gray-400 block mb-1.5">Abonnement</label>
-                <select
-                  value={tier}
-                  disabled={!isOrgAdmin}
-                  onChange={(e) => setTier(e.target.value)}
-                  className="input disabled:opacity-50"
-                >
-                  {TIERS.map((t) => (
-                    <option key={t} value={t}>{TIER_LABELS[t]}</option>
-                  ))}
-                </select>
+              <div className="flex items-center gap-2 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                <div className="flex-1">
+                  <p className="text-xs text-gray-500 mb-1">Abonnement</p>
+                  <p className="text-sm font-medium text-white">{TIER_LABELS[tier] ?? tier}</p>
+                </div>
               </div>
-              {isOrgAdmin && (
-                <button type="submit" className="btn-primary w-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                  </svg>
-                  Enregistrer
-                </button>
-              )}
-            </form>
+              <Link to="/abonnement" className="btn-primary w-full items-center justify-center flex">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                Gérer l'abonnement
+              </Link>
+            </div>
           )}
         </div>
 

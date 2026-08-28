@@ -157,6 +157,10 @@ export const getAdminOrganizations = async () => {
   return api.get<OrgWithMembers[]>("/admin/organizations");
 };
 
+export const createCheckoutSession = async (plan: string) => {
+  return api.post<{ checkout_url: string; transaction_ref: string }>("/billing/checkout", { plan });
+};
+
 export const forgotPassword = async (email: string) => {
   return api.post<{ ok: boolean }>("/auth/forgot-password", { email });
 };

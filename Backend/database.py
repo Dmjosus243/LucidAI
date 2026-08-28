@@ -39,6 +39,9 @@ class Organization(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
     subscription_tier = Column(String, default="free")
+    subscription_status = Column(String, default="inactive")
+    stripe_customer_id = Column(String, nullable=True)
+    stripe_subscription_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     users = relationship("Profile", back_populates="organization")
@@ -116,6 +119,9 @@ def init_db():
                     id UUID PRIMARY KEY,
                     name VARCHAR NOT NULL,
                     subscription_tier VARCHAR DEFAULT 'free',
+                    subscription_status VARCHAR DEFAULT 'inactive',
+                    stripe_customer_id VARCHAR,
+                    stripe_subscription_id VARCHAR,
                     created_at TIMESTAMP DEFAULT now()
                 )
             """))
@@ -176,6 +182,9 @@ def init_db():
     try:
         # Migrations minimales (idempotentes)
         with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS subscription_status VARCHAR DEFAULT 'inactive'"))
+            conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR"))
+            conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR"))
             conn.execute(text("ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey"))
             conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS email VARCHAR"))
             conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS hashed_password VARCHAR"))
