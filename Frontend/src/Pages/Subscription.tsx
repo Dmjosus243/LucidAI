@@ -26,6 +26,21 @@ const PLANS = [
   },
 ];
 
+const POSITIONING = [
+  { label: "Normes comptables", us: "SYSCOHADA / OHADA", them: "SOX, IFRS, PCAOB" },
+  { label: "Langue", us: "Français + vocabulaire local", them: "Anglais / générique" },
+  { label: "Paiement", us: "Mobile Money (MaishaPay)", them: "Virement bancaire" },
+  { label: "Déploiement", us: "Zero config, 60 secondes", them: "Implémentation lourde" },
+  { label: "Prix", us: "Accessible aux cabinets locaux", them: "15 000 – 460 000 €/an" },
+];
+
+const GUARANTEES = [
+  "Conforme SYSCOHADA / OHADA",
+  "Résultat en moins de 60 s",
+  "Paiement Mobile Money",
+  "Données hébergées en toute sécurité",
+];
+
 export const Subscription = () => {
   const { isOrgAdmin } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
@@ -101,10 +116,51 @@ export const Subscription = () => {
             <div>
               <h3 className="text-sm font-semibold text-white">Paiement sécurisé</h3>
               <p className="text-xs text-gray-500 mt-1">
-                Paiement par Mobile Money (Orange Money, M-Pesa, Airtel) ou carte bancaire via CinetPay.
+                Paiement par Mobile Money (Orange Money, M-Pesa, Airtel) ou carte bancaire via MaishaPay.
               </p>
             </div>
             <span className="badge-info badge shrink-0">Sécurisé</span>
+          </div>
+
+          {/* Garanties */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8 max-w-4xl">
+            {GUARANTEES.map((g) => (
+              <div key={g} className="card p-4 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <p className="text-xs font-semibold text-white">{g}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Différenciation */}
+          <div className="card p-8 mt-8 max-w-4xl">
+            <h2 className="page-title !text-xl md:!text-2xl mb-2">Une alternative locale aux géants</h2>
+            <p className="text-gray-400 text-sm mb-6">
+              Les solutions occidentales (MindBridge, Oversight…) coûtent 15 000 €/an et plus. LucidAI est pensée
+              pour les cabinets et PME d'Afrique francophone.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left border-b border-white/10">
+                    <th className="py-2 pr-4 font-semibold text-gray-400"></th>
+                    <th className="py-2 pr-4 font-semibold text-cyan-400">LucidAI</th>
+                    <th className="py-2 font-semibold text-gray-500">Les géants</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {POSITIONING.map((row) => (
+                    <tr key={row.label}>
+                      <td className="py-2.5 pr-4 text-gray-400 font-medium">{row.label}</td>
+                      <td className="py-2.5 pr-4 text-green-400 font-semibold">{row.us}</td>
+                      <td className="py-2.5 text-gray-600">{row.them}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}

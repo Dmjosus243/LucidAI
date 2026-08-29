@@ -5,6 +5,11 @@ export interface Anomaly {
   severity: "critical" | "high" | "medium" | "low";
   description: string;
   reference?: Record<string, unknown>;
+  confidence?: number;
+  summary?: string;
+  reason?: string;
+  red_flags?: string[];
+  suggested_action?: string;
 }
 
 export interface AnalysisResult {

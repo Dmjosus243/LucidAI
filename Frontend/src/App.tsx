@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./Services/Context/AuthContext";
 import { AnalysisProvider } from "./Services/Context/AnalyseCont";
 import { Dashboard } from "./Pages/Dashboard";
+import { Landing } from "./Pages/Landing";
 import { Login } from "./Pages/Login";
 import { Register } from "./Pages/Register";
 import { ForgotPassword } from "./Pages/ForgotPassword";
@@ -14,16 +15,28 @@ import type { ReactNode } from "react";
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { user, isLoading } = useAuth();
   if (isLoading) return <div className="min-h-screen bg-dark flex items-center justify-center text-gray-400">Chargement...</div>;
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to="/" />;
   return <>{children}</>;
 };
 
 const RoleRoute = ({ children, allowed }: { children: ReactNode; allowed: (role: string) => boolean }) => {
   const { user, isLoading } = useAuth();
   if (isLoading) return <div className="min-h-screen bg-dark flex items-center justify-center text-gray-400">Chargement...</div>;
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to="/" />;
   if (!allowed(user.role)) return <Navigate to="/" />;
   return <>{children}</>;
+};
+
+// Page d'accueil : landing publique si déconnecté, Dashboard si connecté
+const IndexRoute = () => {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return <div className="min-h-screen bg-dark flex items-center justify-center text-gray-400">Chargement...</div>;
+  if (!user) return <Landing />;
+  return (
+    <AnalysisProvider>
+      <Dashboard />
+    </AnalysisProvider>
+  );
 };
 
 function App() {
@@ -31,19 +44,10 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          <Route path="/" element={<IndexRoute />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <AnalysisProvider>
-                  <Dashboard />
-                </AnalysisProvider>
-              </ProtectedRoute>
-            }
-          />
           <Route
             path="/equipe"
             element={
@@ -76,6 +80,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/*" element={<IndexRoute />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

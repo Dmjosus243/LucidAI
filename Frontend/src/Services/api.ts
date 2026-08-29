@@ -25,7 +25,16 @@ export interface UploadResponse {
 export interface AnalysisResultResponse {
   status: "done" | "pending";
   risk_score?: number;
-  anomalies?: { type: string; severity: "critical" | "high" | "medium" | "low"; description: string }[];
+  anomalies?: {
+    type: string;
+    severity: "critical" | "high" | "medium" | "low";
+    description: string;
+    confidence?: number;
+    summary?: string;
+    reason?: string;
+    red_flags?: string[];
+    suggested_action?: string;
+  }[];
   report_path?: string;
   filename?: string;
 }
