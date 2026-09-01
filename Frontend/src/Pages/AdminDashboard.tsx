@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Layout } from "../Components/Layout";
-import { getAdminStats, getAdminOrganizations, getAuditLogs } from "../Services/api";
+import { getAdminStats, getAdminOrganizations, getAuditLogs, exportAuditLogs } from "../Services/api";
 import type { AdminStats, OrgWithMembers, AuditLogItem } from "../Services/api";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -37,14 +37,45 @@ export const AdminDashboard = () => {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [orgs, setOrgs] = useState<OrgWithMembers[]>([]);
   const [logs, setLogs] = useState<AuditLogItem[]>([]);
+  const [logTotal, setLogTotal] = useState(0);
+  const [logPage, setLogPage] = useState(0);
+  const [logAction, setLogAction] = useState("");
   const [expandedOrg, setExpandedOrg] = useState<string | null>(null);
   const [error, setError] = useState("");
+
+  const PAGE_SIZE = 50;
+
+  const loadLogs = (page: number, action: string) => {
+    getAuditLogs(PAGE_SIZE, page * PAGE_SIZE, action || undefined)
+      .then((res) => {
+        setLogs(res.data.items);
+        setLogTotal(res.data.total);
+        setLogPage(page);
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
     getAdminStats().then((res) => setStats(res.data)).catch((err) => setError(err?.response?.data?.detail || "Erreur"));
     getAdminOrganizations().then((res) => setOrgs(res.data)).catch(() => {});
-    getAuditLogs(100).then((res) => setLogs(res.data)).catch(() => {});
+    loadLogs(0, "");
   }, []);
+
+  const handleExport = () => {
+    exportAuditLogs()
+      .then((res) => {
+        const blob = new Blob([res.data], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "audit_logs.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+      })
+      .catch(() => {});
+  };
+
+  const totalPages = Math.max(1, Math.ceil(logTotal / PAGE_SIZE));
 
   const statCards = [
     { label: "Utilisateurs", value: stats?.total_users, color: "text-white", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" },
@@ -171,7 +202,37 @@ export const AdminDashboard = () => {
         </div>
 
         <div className="card p-6">
-          <h3 className="section-title mb-4">Journal d'audit</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="section-title m-0">Journal d'audit</h3>
+            <button onClick={handleExport} className="btn-ghost text-xs py-1.5 px-3" title="Exporter en CSV">
+              Exporter CSV
+            </button>
+          </div>
+          <div className="flex gap-2 mb-3">
+            <input
+              value={logAction}
+              onChange={(e) => {
+                setLogAction(e.target.value);
+                loadLogs(0, e.target.value);
+              }}
+              placeholder="Filtrer par action (ex. user.invite)"
+              className="input text-sm"
+            />
+            <select
+              onChange={(e) => {
+                setLogAction(e.target.value);
+                loadLogs(0, e.target.value);
+              }}
+              value={logAction}
+              className="input text-sm max-w-[180px]"
+            >
+              <option value="">Toutes</option>
+              <option value="billing.payment_success">Paiements</option>
+              <option value="user.invite">Invitations</option>
+              <option value="ocr.validate">Validations OCR</option>
+              <option value="analysis.start">Analyses</option>
+            </select>
+          </div>
           <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
             {logs.map((l) => (
               <div key={l.id} className="row">
@@ -187,6 +248,26 @@ export const AdminDashboard = () => {
               </div>
             ))}
             {logs.length === 0 && <p className="text-gray-500 text-sm">Aucune activité</p>}
+          </div>
+          <div className="flex items-center justify-between mt-4">
+            <span className="text-xs text-gray-500">{logTotal} événement(s)</span>
+            <div className="flex gap-2">
+              <button
+                className="btn-ghost text-xs py-1 px-3"
+                disabled={logPage === 0}
+                onClick={() => loadLogs(Math.max(0, logPage - 1), logAction)}
+              >
+                Préc.
+              </button>
+              <span className="text-xs text-gray-400 self-center">{logPage + 1} / {totalPages}</span>
+              <button
+                className="btn-ghost text-xs py-1 px-3"
+                disabled={logPage + 1 >= totalPages}
+                onClick={() => loadLogs(logPage + 1, logAction)}
+              >
+                Suiv.
+              </button>
+            </div>
           </div>
         </div>
       </div>

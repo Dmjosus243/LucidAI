@@ -206,6 +206,60 @@ class RulesEngine:
         return anomalies
 
     # ------------------------------------------------------------------
+    # MOTEUR 4 : ANOMALIE TEMPORELLE (pic mensuel par fournisseur)
+    # Compare le total mensuel d'un fournisseur à sa propre médiane
+    # mobile (fenêtre glissante). Un pic > 2,5× ne peut être expliqué.
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _temporal_engine(df: pd.DataFrame) -> list:
+        anomalies = []
+        if 'amount' not in df.columns or 'vendor' not in df.columns or 'date' not in df.columns:
+            return anomalies
+
+        data = df.copy()
+        data['amount'] = data['amount'].astype(float)
+        data['date'] = pd.to_datetime(data['date'], errors='coerce')
+        data = data.dropna(subset=['date', 'amount'])
+        if data.empty or data['date'].nunique() < 3:
+            return anomalies
+
+        data['month'] = data['date'].dt.to_period('M').astype(str)
+        monthly = data.groupby(['vendor', 'month'])['amount'].sum().reset_index()
+
+        month_order = sorted(monthly['month'].unique())
+        for vendor, g in monthly.groupby('vendor'):
+            g = g.sort_values('month')
+            for i, row in g.iterrows():
+                prev = g[g['month'] < row['month']]
+                if len(prev) < 2:
+                    continue
+                baseline = prev['amount'].median()
+                if baseline <= 0:
+                    continue
+                ratio = row['amount'] / baseline
+                if ratio >= 2.5:
+                    anomalies.append({
+                        "type": "Pic mensuel anormal",
+                        "severity": "medium",
+                        "confidence": min(0.9, 0.5 + min(ratio, 8) * 0.07),
+                        "description": (
+                            f"{vendor} : {_fmt_amount(row['amount'])} CDF en {row['month']} "
+                            f"(médiane {_fmt_amount(baseline)} CDF)"
+                        ),
+                        "reference": {"vendor": vendor, "month": row['month'],
+                                      "total": float(row['amount']), "baseline": float(baseline)},
+                        "summary": "Le dépense mensuelle de ce fournisseur est anormalement élevée ce mois-ci.",
+                        "reason": (f"Le total de {_fmt_amount(row['amount'])} CDF dépasse "
+                                   f"{ratio:.1f}× la médiane historique de {_fmt_amount(baseline)} CDF."),
+                        "red_flags": ["Pic de dépense", "Activation soudaine de fournisseur"],
+                        "suggested_action": (f"Justifier la hausse soudaine des dépenses auprès de {vendor} "
+                                             "et vérifier les pièces justificatives du mois concerné."),
+                    })
+
+        # Débogage uniquement si aucune anomalie n'est trouvée (log)
+        return anomalies
+
+    # ------------------------------------------------------------------
     # ORCHESTREUR / DECISION ENGINE : fusionne les moteurs
     # ------------------------------------------------------------------
     @staticmethod
@@ -228,14 +282,16 @@ class RulesEngine:
                 "suggested_action": "Fournir un fichier complet avec les colonnes montant, date, fournisseur.",
             })
 
-        # Lancer les trois moteurs
+        # Lancer les quatre moteurs
         rule_anoms = RulesEngine._rule_engine(df)
         stat_anoms = RulesEngine._statistical_engine(df)
         split_anoms = RulesEngine._splitting_engine(df)
+        temporal_anoms = RulesEngine._temporal_engine(df)
 
         anomalies.extend(rule_anoms)
         anomalies.extend(stat_anoms)
         anomalies.extend(split_anoms)
+        anomalies.extend(temporal_anoms)
 
         # Tri par sévérité (critical -> low)
         anomalies.sort(key=lambda x: SEVERITY_ORDER.get(x.get('severity'), 4))

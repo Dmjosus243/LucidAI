@@ -59,6 +59,10 @@ def require_org_admin(user: Profile) -> None:
     if not is_org_admin(user):
         raise HTTPException(status_code=403, detail="Réservé à l'administrateur de l'organisation")
 
+def require_manager_or_above(user: Profile) -> None:
+    if not is_manager_or_above(user):
+        raise HTTPException(status_code=403, detail="Réservé au manager ou au-dessus")
+
 def require_super_admin(user: Profile) -> None:
     if not is_super_admin(user):
         raise HTTPException(status_code=403, detail="Réservé à l'administrateur de la plateforme")

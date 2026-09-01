@@ -103,6 +103,118 @@ class PasswordReset(Base):
     used = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+# ---------- MODÈLES V2 (7 fonctionnalités) ----------
+
+class OCRDocument(Base):
+    """Documents soumis à l'OCR + validation humaine (F1)."""
+    __tablename__ = "ocr_documents"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)
+    filename = Column(String, nullable=False)
+    status = Column(String, default="pending")  # pending / validated / rejected
+    engine = Column(String, default="transparent")  # transparent / tesseract / paddle
+    extracted_json = Column(JSON, default=[])
+    validated_json = Column(JSON, nullable=True)
+    confidence = Column(Float, default=0.0)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    validated_at = Column(DateTime, nullable=True)
+    validated_by = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=True)
+
+class JournalEntry(Base):
+    """Écritures comptables issues de l'OCR / rapprochement / prédiction (F1/F2/F3)."""
+    __tablename__ = "journal_entries"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)
+    entry_ref = Column(String, nullable=False)
+    date = Column(String, nullable=True)
+    source = Column(String, default="manuel")  # ocr / recon / predicted / manuel
+    confidence = Column(Float, default=0.0)
+    lines = Column(JSON, default=[])
+    status = Column(String, default="pending")  # pending / validated / rejected
+    validated_by = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class BankAccount(Base):
+    """Comptes bancaires (F2/F7)."""
+    __tablename__ = "bank_accounts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True)
+    bank_code = Column(String, nullable=True)
+    label = Column(String, nullable=True)
+    currency = Column(String, default="CDF")
+    provider = Column(String, default="generic")
+    last_sync_at = Column(DateTime, nullable=True)
+    config = Column(JSON, default={})
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class BankStatement(Base):
+    """Relevés bancaires bruts importés (F2/F7)."""
+    __tablename__ = "bank_statements"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True)
+    account_id = Column(UUID(as_uuid=True), ForeignKey("bank_accounts.id"), nullable=True)
+    date_range = Column(String, nullable=True)
+    source = Column(String, default="upload")
+    raw = Column(JSON, default=[])
+    imported_by = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class ReconciliationItem(Base):
+    """Pointage entre lignes de relevé et écritures (F2)."""
+    __tablename__ = "reconciliation_items"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True)
+    statement_id = Column(UUID(as_uuid=True), ForeignKey("bank_statements.id"), nullable=True)
+    statement_line = Column(JSON, default={})
+    entry_id = Column(UUID(as_uuid=True), ForeignKey("journal_entries.id"), nullable=True)
+    status = Column(String, default="unmatched")  # matched / unmatched / auto
+    confidence = Column(Float, default=0.0)
+    matched_at = Column(DateTime, nullable=True)
+    matched_by = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class ChatSession(Base):
+    """Session de l'assistant conversationnel (F5)."""
+    __tablename__ = "chat_sessions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)
+    title = Column(String, default="Nouvelle conversation")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class ChatMessage(Base):
+    """Message d'une session (F5)."""
+    __tablename__ = "chat_messages"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    session_id = Column(UUID(as_uuid=True), ForeignKey("chat_sessions.id"), nullable=False)
+    role = Column(String, nullable=False)  # user / assistant
+    content = Column(Text, nullable=False)
+    context = Column(JSON, default={})
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class WebhookEvent(Base):
+    """Événements bancaires entrants (F7)."""
+    __tablename__ = "webhook_events"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    event_key = Column(String, unique=True, nullable=True)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True)
+    provider = Column(String, default="generic")
+    event_type = Column(String, nullable=True)
+    payload = Column(JSON, default={})
+    status = Column(String, default="received")  # received / processed / failed
+    received_at = Column(DateTime, default=datetime.datetime.utcnow)
+    processed_at = Column(DateTime, nullable=True)
+
 # ---------- FONCTION D'INITIALISATION ----------
 def init_db():
     """
@@ -173,6 +285,108 @@ def init_db():
                     created_at TIMESTAMP DEFAULT now()
                 )
             """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS ocr_documents (
+                    id UUID PRIMARY KEY,
+                    organization_id UUID REFERENCES public.organizations(id),
+                    user_id UUID NOT NULL REFERENCES public.profiles(id),
+                    filename VARCHAR NOT NULL,
+                    status VARCHAR DEFAULT 'pending',
+                    engine VARCHAR DEFAULT 'transparent',
+                    extracted_json JSON DEFAULT '[]',
+                    validated_json JSON,
+                    confidence FLOAT DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT now(),
+                    validated_at TIMESTAMP,
+                    validated_by UUID REFERENCES public.profiles(id)
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS journal_entries (
+                    id UUID PRIMARY KEY,
+                    organization_id UUID REFERENCES public.organizations(id),
+                    user_id UUID NOT NULL REFERENCES public.profiles(id),
+                    entry_ref VARCHAR NOT NULL,
+                    date VARCHAR,
+                    source VARCHAR DEFAULT 'manuel',
+                    confidence FLOAT DEFAULT 0,
+                    lines JSON DEFAULT '[]',
+                    status VARCHAR DEFAULT 'pending',
+                    validated_by UUID REFERENCES public.profiles(id),
+                    created_at TIMESTAMP DEFAULT now()
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS bank_accounts (
+                    id UUID PRIMARY KEY,
+                    organization_id UUID REFERENCES public.organizations(id),
+                    bank_code VARCHAR,
+                    label VARCHAR,
+                    currency VARCHAR DEFAULT 'CDF',
+                    provider VARCHAR DEFAULT 'generic',
+                    last_sync_at TIMESTAMP,
+                    config JSON DEFAULT '{}',
+                    created_at TIMESTAMP DEFAULT now()
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS bank_statements (
+                    id UUID PRIMARY KEY,
+                    organization_id UUID REFERENCES public.organizations(id),
+                    account_id UUID REFERENCES public.bank_accounts(id),
+                    date_range VARCHAR,
+                    source VARCHAR DEFAULT 'upload',
+                    raw JSON DEFAULT '[]',
+                    imported_by UUID REFERENCES public.profiles(id),
+                    created_at TIMESTAMP DEFAULT now()
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS reconciliation_items (
+                    id UUID PRIMARY KEY,
+                    organization_id UUID REFERENCES public.organizations(id),
+                    statement_id UUID REFERENCES public.bank_statements(id),
+                    statement_line JSON DEFAULT '{}',
+                    entry_id UUID REFERENCES public.journal_entries(id),
+                    status VARCHAR DEFAULT 'unmatched',
+                    confidence FLOAT DEFAULT 0,
+                    matched_at TIMESTAMP,
+                    matched_by UUID REFERENCES public.profiles(id),
+                    created_at TIMESTAMP DEFAULT now()
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS chat_sessions (
+                    id UUID PRIMARY KEY,
+                    organization_id UUID REFERENCES public.organizations(id),
+                    user_id UUID NOT NULL REFERENCES public.profiles(id),
+                    title VARCHAR DEFAULT 'Nouvelle conversation',
+                    created_at TIMESTAMP DEFAULT now()
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS chat_messages (
+                    id UUID PRIMARY KEY,
+                    session_id UUID NOT NULL REFERENCES public.chat_sessions(id),
+                    role VARCHAR NOT NULL,
+                    content TEXT NOT NULL,
+                    context JSON DEFAULT '{}',
+                    created_at TIMESTAMP DEFAULT now()
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS webhook_events (
+                    id UUID PRIMARY KEY,
+                    event_key VARCHAR UNIQUE,
+                    organization_id UUID REFERENCES public.organizations(id),
+                    provider VARCHAR DEFAULT 'generic',
+                    event_type VARCHAR,
+                    payload JSON DEFAULT '{}',
+                    status VARCHAR DEFAULT 'received',
+                    received_at TIMESTAMP DEFAULT now(),
+                    processed_at TIMESTAMP
+                )
+            """))
             conn.commit()
         print("[OK] Base de donnees connectee avec succes.")
     except Exception as e:
@@ -191,6 +405,8 @@ def init_db():
             conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE"))
             conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS invited_by UUID"))
             conn.execute(text("ALTER TABLE analyses ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP"))
+            conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS bank_sync_enabled BOOLEAN DEFAULT FALSE"))
+            conn.execute(text("ALTER TABLE webhook_events ADD COLUMN IF NOT EXISTS event_key VARCHAR"))
             conn.commit()
     except Exception as e:
         print(f"[WARN] Migrations : {e}")

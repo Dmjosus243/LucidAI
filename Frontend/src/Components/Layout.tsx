@@ -31,6 +31,10 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
           <nav className="flex flex-wrap items-center gap-1 order-3 md:order-2 w-full md:w-auto">
             <NavLink to="/" className={linkClass} end>Audit</NavLink>
+            <NavLink to="/ocr" className={linkClass}>Documents</NavLink>
+            <NavLink to="/rapprochement" className={linkClass}>Rapprochement</NavLink>
+            <NavLink to="/assistant" className={linkClass}>Assistant</NavLink>
+            <NavLink to="/banque" className={linkClass}>Banque</NavLink>
             <NavLink to="/organisation" className={linkClass}>Organisation</NavLink>
             {(isOrgAdmin || isSuperAdmin) && (
               <NavLink to="/equipe" className={linkClass}>Équipe</NavLink>

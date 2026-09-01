@@ -145,8 +145,17 @@ export const getOrgAnalyses = async () => {
   return api.get<OrgAnalysis[]>("/analyses/org");
 };
 
-export const getAuditLogs = async (limit = 100) => {
-  return api.get<AuditLogItem[]>("/audit-logs", { params: { limit } });
+export interface AuditLogPage {
+  total: number;
+  items: AuditLogItem[];
+}
+
+export const getAuditLogs = async (limit = 100, skip = 0, action?: string) => {
+  return api.get<AuditLogPage>("/audit-logs", { params: { limit, skip, action } });
+};
+
+export const exportAuditLogs = async () => {
+  return api.get("/audit-logs/export", { responseType: "blob" });
 };
 
 export const getAdminStats = async () => {
@@ -176,4 +185,182 @@ export const forgotPassword = async (email: string) => {
 
 export const resetPassword = async (email: string, otp: string, new_password: string) => {
   return api.post<{ ok: boolean; message: string }>("/auth/reset-password", { email, otp, new_password });
+};
+
+// ----------------------------------------------------------------------
+// Feature 1 — OCR + validation humaine
+// ----------------------------------------------------------------------
+export interface OcrLine {
+  label: string;
+  date?: string | null;
+  amount?: number | null;
+  tax_rate?: number | null;
+  confidence: number;
+}
+
+export interface OCRDocument {
+  id: string;
+  filename: string;
+  status: "pending" | "validated" | "rejected";
+  engine: string;
+  confidence: number;
+  lines: OcrLine[];
+  created_at?: string;
+}
+
+export interface JournalEntry {
+  id: string;
+  entry_ref: string;
+  date?: string | null;
+  source: string;
+  confidence: number;
+  status: string;
+  lines: { label: string; amount: number; tax_rate?: number }[];
+  created_at?: string;
+}
+
+export const uploadOcrDocument = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return api.post<OCRDocument>("/ocr/upload", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
+export const getOcrDocuments = async () => {
+  return api.get<OCRDocument[]>("/ocr/documents");
+};
+
+export const validateOcrDocument = async (docId: string, lines: OcrLine[]) => {
+  return api.post<{ ok: boolean; doc_id: string; entries: string[] }>(`/ocr/documents/${docId}/validate`, { lines });
+};
+
+export const rejectOcrDocument = async (docId: string) => {
+  return api.post<{ ok: boolean; doc_id: string }>(`/ocr/documents/${docId}/reject`);
+};
+
+export const getJournalEntries = async (limit = 200) => {
+  return api.get<JournalEntry[]>("/ocr/entries", { params: { limit } });
+};
+
+// ----------------------------------------------------------------------
+// Feature 2 — Rapprochement bancaire automatisé
+// ----------------------------------------------------------------------
+export interface ReconResult {
+  status: "auto" | "matched" | "unmatched";
+  confidence: number;
+  entry_index: number | null;
+  statement_index: number | null;
+  statement_line?: { date?: string; description?: string; amount?: number } | null;
+}
+
+export interface ReconImportResponse {
+  statement_id: string;
+  account_id: string;
+  lines_count: number;
+  automation_rate: number;
+  results: ReconResult[];
+}
+
+export interface BankStatementItem {
+  id: string;
+  account_id: string | null;
+  date_range: string | null;
+  source: string;
+  lines_count: number;
+  created_at?: string;
+}
+
+export const importStatement = async (file: File, accountId?: string) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (accountId) formData.append("account_id", accountId);
+  return api.post<ReconImportResponse>("/recon/import", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
+export const getStatements = async () => {
+  return api.get<BankStatementItem[]>("/recon/statements");
+};
+
+// ----------------------------------------------------------------------
+// Feature 5 — Assistant conversationnel
+// ----------------------------------------------------------------------
+export interface ChatSessionItem {
+  id: string;
+  title: string;
+  created_at?: string;
+}
+
+export interface ChatMessageItem {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  mode?: string;
+  created_at?: string;
+}
+
+export const createChatSession = async (title?: string) => {
+  return api.post<ChatSessionItem>("/chat/sessions", { title });
+};
+
+export const getChatSessions = async () => {
+  return api.get<ChatSessionItem[]>("/chat/sessions");
+};
+
+export const getChatMessages = async (sessionId: string) => {
+  return api.get<ChatMessageItem[]>(`/chat/sessions/${sessionId}/messages`);
+};
+
+export const sendChatMessage = async (
+  sessionId: string,
+  content: string
+) => {
+  return api.post<{
+    user_message: ChatMessageItem;
+    assistant_message: ChatMessageItem;
+  }>(`/chat/sessions/${sessionId}/messages`, { content });
+};
+
+// ----------------------------------------------------------------------
+// Feature 7 — APIs bancaires & webhooks
+// ----------------------------------------------------------------------
+export interface BankAccountItem {
+  id: string;
+  label: string;
+  bank_code: string | null;
+  currency: string;
+  provider: string;
+  last_sync_at?: string | null;
+}
+
+export interface WebhookEventItem {
+  id: string;
+  provider: string;
+  event_type: string | null;
+  status: string;
+  payload: Record<string, unknown>;
+  received_at?: string | null;
+}
+
+export const createBankAccount = async (data: {
+  label: string;
+  bank_code?: string;
+  currency?: string;
+  provider?: string;
+}) => {
+  return api.post<BankAccountItem>("/banking/accounts", data);
+};
+
+export const getBankAccounts = async () => {
+  return api.get<BankAccountItem[]>("/banking/accounts");
+};
+
+export const deleteBankAccount = async (accountId: string) => {
+  return api.delete<{ ok: boolean }>(`/banking/accounts/${accountId}`);
+};
+
+export const getWebhookEvents = async (limit = 100) => {
+  return api.get<WebhookEventItem[]>("/banking/webhook/events", { params: { limit } });
 };

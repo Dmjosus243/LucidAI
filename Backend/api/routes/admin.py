@@ -1,8 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from pydantic import BaseModel
 import uuid
+import csv
+import io
 
 from database import get_db, Profile, Organization, Analysis, AuditLog
 from api.dependencies import (
@@ -249,12 +252,9 @@ async def get_org_analyses(
         for a in analyses
     ]
 
-@router.get("/audit-logs")
-async def get_audit_logs(
-    db: Session = Depends(get_db),
-    user: Profile = Depends(get_current_user),
-    limit: int = 100,
-):
+def _scope_audit_query(db: Session, user: Profile):
+    """Retourne une query AuditLog restreinte à l'organisation de l'utilisateur
+    (le super_admin voit tout)."""
     query = db.query(AuditLog)
     if user.role != "super_admin":
         require_org_admin(user)
@@ -262,20 +262,75 @@ async def get_audit_logs(
             m.id for m in db.query(Profile).filter(Profile.organization_id == user.organization_id).all()
         ]
         if not member_ids:
-            return []
+            return db.query(AuditLog).filter(AuditLog.id.is_(None))
         query = query.filter(AuditLog.user_id.in_(member_ids))
+    return query
+
+
+def _serialize_log(l) -> dict:
+    return {
+        "id": str(l.id),
+        "user_id": str(l.user_id) if l.user_id else None,
+        "action": l.action,
+        "details": l.details,
+        "ip_address": l.ip_address,
+        "created_at": l.created_at.isoformat() if l.created_at else None,
+    }
+
+
+@router.get("/audit-logs")
+async def get_audit_logs(
+    db: Session = Depends(get_db),
+    user: Profile = Depends(get_current_user),
+    skip: int = 0,
+    limit: int = 100,
+    action: str | None = None,
+):
+    query = _scope_audit_query(db, user)
+    if action:
+        query = query.filter(AuditLog.action == action)
+    total = query.count()
+    logs = query.order_by(AuditLog.created_at.desc()).offset(skip).limit(limit).all()
+    return {
+        "total": total,
+        "items": [_serialize_log(l) for l in logs],
+    }
+
+
+@router.get("/audit-logs/export")
+async def export_audit_logs(
+    db: Session = Depends(get_db),
+    user: Profile = Depends(get_current_user),
+    action: str | None = None,
+    limit: int = 2000,
+):
+    query = _scope_audit_query(db, user)
+    if action:
+        query = query.filter(AuditLog.action == action)
     logs = query.order_by(AuditLog.created_at.desc()).limit(limit).all()
-    return [
-        {
-            "id": str(l.id),
-            "user_id": str(l.user_id) if l.user_id else None,
-            "action": l.action,
-            "details": l.details,
-            "ip_address": l.ip_address,
-            "created_at": l.created_at.isoformat() if l.created_at else None,
-        }
-        for l in logs
-    ]
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["id", "user_id", "action", "details", "ip_address", "created_at"])
+    for l in logs:
+        writer.writerow([
+            l.id,
+            l.user_id,
+            l.action,
+            l.details or {},
+            l.ip_address or "",
+            l.created_at.isoformat() if l.created_at else "",
+        ])
+    buf.seek(0)
+    log_action(
+        db, str(user.id), "audit.export",
+        {"count": len(logs)}, request=None,
+    )
+    return Response(
+        content=buf.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="audit_logs.csv"'},
+    )
 
 @router.get("/admin/stats")
 async def get_admin_stats(

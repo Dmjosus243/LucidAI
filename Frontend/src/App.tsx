@@ -10,6 +10,10 @@ import { TeamManagement } from "./Pages/TeamManagement";
 import { OrgDashboard } from "./Pages/OrgDashboard";
 import { AdminDashboard } from "./Pages/AdminDashboard";
 import { Subscription } from "./Pages/Subscription";
+import { DocumentsOCR } from "./Pages/DocumentsOCR";
+import { Reconciliation } from "./Pages/Reconciliation";
+import { Assistant } from "./Pages/Assistant";
+import { Banking } from "./Pages/Banking";
 import type { ReactNode } from "react";
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
@@ -77,6 +81,38 @@ function App() {
             element={
               <ProtectedRoute>
                 <Subscription />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ocr"
+            element={
+              <ProtectedRoute>
+                <DocumentsOCR />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rapprochement"
+            element={
+              <ProtectedRoute>
+                <Reconciliation />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assistant"
+            element={
+              <ProtectedRoute>
+                <Assistant />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/banque"
+            element={
+              <ProtectedRoute>
+                <Banking />
               </ProtectedRoute>
             }
           />
