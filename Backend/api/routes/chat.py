@@ -128,13 +128,14 @@ async def send_message(
         raise HTTPException(400, "Message vide")
 
     # Message utilisateur
-    db.add(ChatMessage(
+    user_msg = ChatMessage(
         id=str(uuid.uuid4()),
         session_id=session.id,
         role="user",
         content=content,
         created_at=_utcnow(),
-    ))
+    )
+    db.add(user_msg)
     db.flush()
 
     # Réponse
@@ -156,7 +157,12 @@ async def send_message(
     db.commit()
 
     return {
-        "user_message": {"role": "user", "content": content},
+        "user_message": {
+            "id": str(user_msg.id),
+            "role": "user",
+            "content": user_msg.content,
+            "mode": "user",
+        },
         "assistant_message": {
             "id": str(assistant_msg.id),
             "role": "assistant",

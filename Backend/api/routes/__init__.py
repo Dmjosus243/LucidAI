@@ -1,1 +1,1 @@
-from . import upload, analysis, reports, auth, admin, billing, ocr, recon, chat, banking
+from . import upload, analysis, reports, auth, admin, billing, ocr, recon, chat, banking, predict

@@ -364,3 +364,49 @@ export const deleteBankAccount = async (accountId: string) => {
 export const getWebhookEvents = async (limit = 100) => {
   return api.get<WebhookEventItem[]>("/banking/webhook/events", { params: { limit } });
 };
+
+// ----------------------------------------------------------------------
+// Feature 3 — Écritures prédictives (journal de caisse)
+// ----------------------------------------------------------------------
+export interface PredictedLine {
+  label: string;
+  account: string;
+  debit?: number | null;
+  credit?: number | null;
+  amount?: number | null;
+}
+
+export interface PredictedEntryItem {
+  id: string;
+  entry_ref: string;
+  date?: string;
+  confidence: number;
+  category?: string;
+  description?: string;
+  lines: PredictedLine[];
+  status: "pending" | "validated" | "rejected";
+  created_at?: string;
+}
+
+export interface CashOperationInput {
+  date?: string;
+  description: string;
+  amount: number;
+  direction: "in" | "out";
+}
+
+export const predictFromCash = async (operations: CashOperationInput[]) => {
+  return api.post<{ created: PredictedEntryItem[]; count: number }>("/predict/from-cash", { operations });
+};
+
+export const getPredictions = async () => {
+  return api.get<PredictedEntryItem[]>("/predict/pending");
+};
+
+export const validatePrediction = async (entryId: string) => {
+  return api.post<{ ok: boolean; status: string }>(`/predict/${entryId}/validate`);
+};
+
+export const rejectPrediction = async (entryId: string) => {
+  return api.post<{ ok: boolean; status: string }>(`/predict/${entryId}/reject`);
+};

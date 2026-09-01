@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import config
 from database import init_db
-from api.routes import upload, analysis, reports, auth, admin, billing, ocr, recon, chat, banking
+from api.routes import upload, analysis, reports, auth, admin, billing, ocr, recon, chat, banking, predict
 
 # Initialiser la base de données (crée les tables si elles n'existent pas)
 init_db()
@@ -29,6 +29,7 @@ app.include_router(ocr.router, prefix="/api/v1")
 app.include_router(recon.router, prefix="/api/v1")
 app.include_router(chat.router, prefix="/api/v1")
 app.include_router(banking.router, prefix="/api/v1")
+app.include_router(predict.router, prefix="/api/v1")
 
 @app.get("/health")
 async def health():
