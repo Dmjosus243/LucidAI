@@ -20,7 +20,7 @@ except Exception:  # pragma: no cover
     _HAS_LLM = False
 
 # Timeout bornant l'appel LLM pour ne jamais bloquer l'assistant.
-LLM_TIMEOUT_SECONDS = 25
+LLM_TIMEOUT_SECONDS = 12
 
 
 def build_context(org_data: dict) -> str:
@@ -118,11 +118,19 @@ def answer(question: str, org_data: dict, history: list | None = None) -> dict:
         try:
             from config import config
             if config.GEMINI_API_KEY:
-                # Appel LLM borné dans le temps : ne doit jamais bloquer.
-                with ThreadPoolExecutor(max_workers=1) as ex:
-                    future = ex.submit(invoke_text, prompt)
+                # Appel LLM borné dans le temps. IMPORTANT : on n'utilise PAS
+                # `with ThreadPoolExecutor` car son `shutdown(wait=True)` à la
+                # sortie bloque jusqu'à la fin réelle de l'appel réseau, ce qui
+                # neutralise le timeout. On gère l'executor manuellement avec
+                # shutdown(wait=False, cancel_futures=True) pour que le repli
+                # local soit immédiat dès le dépassement du délai.
+                ex = ThreadPoolExecutor(max_workers=1)
+                future = ex.submit(invoke_text, prompt)
+                try:
                     text = future.result(timeout=LLM_TIMEOUT_SECONDS)
-                return {"text": text.strip(), "mode": "llm"}
+                    return {"text": text.strip(), "mode": "llm"}
+                finally:
+                    ex.shutdown(wait=False, cancel_futures=True)
         except FuturesTimeout:  # pragma: no cover
             logger.warning("Assistant: délai LLM dépassé, repli local.")
         except Exception as e:  # pragma: no cover

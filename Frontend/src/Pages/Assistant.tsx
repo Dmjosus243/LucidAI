@@ -15,6 +15,7 @@ export const Assistant = () => {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(true);
+  const [error, setError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const loadSessions = () => {
@@ -45,6 +46,7 @@ export const Assistant = () => {
     if (!content || sending) return;
     setInput("");
     setSending(true);
+    setError("");
 
     let sessionId = currentSession;
     if (!sessionId) {
@@ -53,8 +55,9 @@ export const Assistant = () => {
         sessionId = created.data.id;
         setCurrentSession(sessionId);
         setSessions((prev) => [created.data, ...prev]);
-      } catch {
+      } catch (err: any) {
         setSending(false);
+        setError(err?.response?.data?.detail || "Impossible de créer la conversation. Vérifiez que le serveur est démarré.");
         return;
       }
     }
@@ -65,16 +68,19 @@ export const Assistant = () => {
       { id: `opt-${Date.now()}`, role: "user", content },
     ]);
     try {
-      const res = await sendChatMessage(sessionId, content);
+      const res = await sendChatMessage(sessionId as string, content);
       setMessages((prev) => [
         ...prev.filter((m) => !m.id.startsWith("opt-")),
         res.data.user_message,
         res.data.assistant_message,
       ]);
-    } catch {
+    } catch (err: any) {
+      // Retire le message optimiste et signale l'erreur (au lieu de l'avaler)
+      setMessages((prev) => prev.filter((m) => !m.id.startsWith("opt-")));
+      setError(err?.response?.data?.detail || "L'assistant n'a pas pu répondre. Vérifiez la connexion au serveur.");
+    } finally {
       setSending(false);
     }
-    setSending(false);
   };
 
   return (
@@ -147,6 +153,11 @@ export const Assistant = () => {
                   <div className="bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-sm text-gray-400">
                     Réflexion...
                   </div>
+                </div>
+              )}
+              {error && (
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
+                  {error}
                 </div>
               )}
               <div ref={bottomRef} />
