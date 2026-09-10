@@ -61,7 +61,7 @@ export const Reconciliation = () => {
           <div className="card p-6 mb-8">
             <h3 className="section-title mb-4">Importer un relevé bancaire</h3>
             <label
-              className={`card rounded-2xl p-10 text-center cursor-pointer transition-all duration-300 border-2 border-dashed ${
+              className={`card rounded-2xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-300 border-2 border-dashed ${
                 uploading ? "border-gray-600 opacity-50" : "border-cyan-500/20 hover:border-cyan-400/60 hover:shadow-glow"
               }`}
             >

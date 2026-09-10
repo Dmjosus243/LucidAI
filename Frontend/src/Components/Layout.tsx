@@ -29,7 +29,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             <Logo size={36} />
           </NavLink>
 
-          <nav className="flex flex-wrap items-center gap-1 order-3 md:order-2 w-full md:w-auto">
+          <nav className="flex items-center gap-1 order-3 md:order-2 w-full md:w-auto overflow-x-auto scrollbar-none whitespace-nowrap">
             <NavLink to="/" className={linkClass} end>Audit</NavLink>
             <NavLink to="/ocr" className={linkClass}>Documents</NavLink>
             <NavLink to="/rapprochement" className={linkClass}>Rapprochement</NavLink>

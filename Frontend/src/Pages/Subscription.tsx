@@ -73,7 +73,7 @@ export const Subscription = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 max-w-4xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 max-w-4xl mx-auto">
             {PLANS.map((plan) => (
               <div
                 key={plan.id}
@@ -112,7 +112,7 @@ export const Subscription = () => {
             ))}
           </div>
 
-          <div className="card p-6 max-w-4xl flex items-center justify-between">
+          <div className="card p-6 max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold text-white">Paiement sécurisé</h3>
               <p className="text-xs text-gray-500 mt-1">
@@ -123,7 +123,7 @@ export const Subscription = () => {
           </div>
 
           {/* Garanties */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8 max-w-4xl">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8 max-w-4xl mx-auto">
             {GUARANTEES.map((g) => (
               <div key={g} className="card p-4 text-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -135,7 +135,7 @@ export const Subscription = () => {
           </div>
 
           {/* Différenciation */}
-          <div className="card p-8 mt-8 max-w-4xl">
+          <div className="card p-6 sm:p-8 mt-8 max-w-4xl mx-auto">
             <h2 className="page-title !text-xl md:!text-2xl mb-2">Une alternative locale aux géants</h2>
             <p className="text-gray-400 text-sm mb-6">
               Les solutions occidentales (MindBridge, Oversight…) coûtent 15 000 €/an et plus. LucidAI est pensée

@@ -208,7 +208,7 @@ export const AdminDashboard = () => {
               Exporter CSV
             </button>
           </div>
-          <div className="flex gap-2 mb-3">
+          <div className="flex flex-col sm:flex-row gap-2 mb-3">
             <input
               value={logAction}
               onChange={(e) => {
@@ -216,7 +216,7 @@ export const AdminDashboard = () => {
                 loadLogs(0, e.target.value);
               }}
               placeholder="Filtrer par action (ex. user.invite)"
-              className="input text-sm"
+              className="input text-sm flex-1"
             />
             <select
               onChange={(e) => {
@@ -224,7 +224,7 @@ export const AdminDashboard = () => {
                 loadLogs(0, e.target.value);
               }}
               value={logAction}
-              className="input text-sm max-w-[180px]"
+              className="input text-sm w-full sm:w-auto sm:max-w-[180px]"
             >
               <option value="">Toutes</option>
               <option value="billing.payment_success">Paiements</option>

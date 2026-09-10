@@ -16,7 +16,7 @@ export const UploadZone = ({ onUpload, isLoading }: { onUpload: (file: File) => 
   return (
     <div
       {...getRootProps()}
-      className={`card rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 border-2 border-dashed ${
+      className={`card rounded-2xl p-8 sm:p-12 text-center cursor-pointer transition-all duration-300 border-2 border-dashed ${
         isLoading
           ? "border-gray-600 opacity-50"
           : isDragActive

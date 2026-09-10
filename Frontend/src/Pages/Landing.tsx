@@ -215,17 +215,19 @@ export const Landing = () => {
             Les solutions occidentales sont hors de portée des cabinets et PME d'Afrique francophone.
             LucidAI est la seule plateforme de détection de fraude pensée pour votre réalité.
           </p>
-          <div className="grid grid-cols-3 gap-4 md:gap-6 font-semibold text-sm pb-3 border-b border-white/10">
+          <div className="hidden sm:grid grid-cols-3 gap-4 md:gap-6 font-semibold text-sm pb-3 border-b border-white/10">
             <div></div>
             <div className="text-cyan-400">LucidAI</div>
             <div className="text-gray-500 text-right">Les géants (MindBridge, Oversight)</div>
           </div>
           <div className="divide-y divide-white/5">
             {POSITIONING.map((row) => (
-              <div key={row.label} className="grid grid-cols-3 gap-4 md:gap-6 py-3 text-sm items-center">
-                <div className="text-gray-400 font-medium">{row.label}</div>
-                <div className="text-green-400 font-semibold">{row.us}</div>
-                <div className="text-gray-600 text-right">{row.them}</div>
+              <div key={row.label} className="py-3 text-sm">
+                <div className="text-gray-400 font-medium mb-1">{row.label}</div>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 sm:items-center sm:mt-0">
+                  <div className="text-green-400 font-semibold min-w-0">{row.us}</div>
+                  <div className="text-gray-600 sm:text-right min-w-0">{row.them}</div>
+                </div>
               </div>
             ))}
           </div>

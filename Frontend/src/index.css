@@ -10,6 +10,13 @@
     scrollbar-color: rgba(0, 212, 255, 0.35) transparent;
   }
 
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
