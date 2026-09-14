@@ -108,28 +108,28 @@ export const Reconciliation = () => {
               <h3 className="section-title mb-4">Détail des pointages</h3>
               <div className="card overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="data-table">
                     <thead>
-                      <tr className="text-left text-xs text-gray-500 border-b border-white/10">
-                        <th className="p-3 font-medium">Relevé (libellé)</th>
-                        <th className="p-3 font-medium text-right">Montant</th>
-                        <th className="p-3 font-medium">Statut</th>
-                        <th className="p-3 font-medium text-right">Confiance</th>
+                      <tr>
+                        <th>Relevé (libellé)</th>
+                        <th className="num">Montant</th>
+                        <th>Statut</th>
+                        <th className="num">Confiance</th>
                       </tr>
                     </thead>
                     <tbody>
                       {results.map((r, i) => (
-                        <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02]">
-                          <td className="p-3 text-gray-300 max-w-[280px] truncate">
+                        <tr key={i}>
+                          <td className="max-w-[280px] truncate">
                             {r.statement_line?.description || "—"}
                           </td>
-                          <td className="p-3 text-right font-mono">
+                          <td className="num">
                             {fmt(r.statement_line?.amount)} CDF
                           </td>
-                          <td className="p-3">
+                          <td>
                             <span className={`badge ${statusBadge(r.status)}`}>{statusLabel(r.status)}</span>
                           </td>
-                          <td className="p-3 text-right">
+                          <td className="num">
                             <span className={`font-mono ${r.confidence >= 0.7 ? "text-success" : r.confidence >= 0.4 ? "text-warning" : "text-danger"}`}>
                               {(r.confidence * 100).toFixed(0)}%
                             </span>
@@ -137,7 +137,7 @@ export const Reconciliation = () => {
                         </tr>
                       ))}
                       {results.length === 0 && (
-                        <tr><td colSpan={4} className="p-6 text-center text-gray-500">Importez un relevé pour voir les pointages.</td></tr>
+                        <tr><td colSpan={4} className="text-center text-gray-500">Importez un relevé pour voir les pointages.</td></tr>
                       )}
                     </tbody>
                   </table>

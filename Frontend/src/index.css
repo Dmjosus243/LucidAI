@@ -58,15 +58,16 @@
   }
 
   .card {
-    @apply glass rounded-2xl shadow-card transition-all duration-300;
+    @apply rounded-xl shadow-card border border-white/5 transition-all duration-300;
+    background: linear-gradient(180deg, rgba(17, 31, 51, 0.92), rgba(13, 27, 51, 0.92));
   }
   .card-hover {
-    @apply hover:border-cyan-500/30 hover:shadow-glow hover:-translate-y-0.5;
+    @apply hover:border-cyan-500/25 hover:-translate-y-0.5;
   }
 
   .page-title {
     @apply text-2xl md:text-3xl font-extrabold tracking-tight;
-    background: linear-gradient(90deg, #ffffff 0%, #38E1FF 60%, #00D4FF 100%);
+    background: linear-gradient(90deg, #ffffff 0%, #B5F3FF 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -77,16 +78,16 @@
   }
 
   .input {
-    @apply w-full p-3 rounded-xl bg-dark-card/80 border border-white/10 text-white placeholder-gray-500
+    @apply w-full p-2.5 rounded-lg bg-dark-card/80 border border-white/10 text-white placeholder-gray-500
       focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all;
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200
+    @apply inline-flex items-center justify-center gap-2 font-semibold rounded-lg transition-all duration-200
       focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
-    @apply btn px-4 py-3 bg-cyan-500 text-dark hover:bg-cyan-400 hover:shadow-glow
+    @apply btn px-4 py-2.5 bg-cyan-500 text-dark hover:bg-cyan-400
       focus:ring-cyan-500/40 active:scale-[0.98];
   }
   .btn-ghost {
@@ -97,7 +98,7 @@
   }
 
   .badge {
-    @apply inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full;
+    @apply inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-md;
   }
   .badge-critical { @apply badge bg-danger/15 text-red-400 border border-danger/25; }
   .badge-high { @apply badge bg-orange-500/15 text-orange-400 border border-orange-500/25; }
@@ -108,6 +109,39 @@
   .badge-info { @apply badge bg-cyan-500/15 text-cyan-300 border border-cyan-500/25; }
 
   .row {
-    @apply p-4 bg-dark-card/50 border border-white/5 rounded-xl hover:border-cyan-500/20 hover:bg-dark-card/80 transition-all;
+    @apply p-4 bg-dark-card/50 border border-white/5 rounded-lg hover:border-cyan-500/20 hover:bg-dark-card/80 transition-all;
+  }
+
+  /* Tableaux de données — style logiciel comptable */
+  .data-table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  .data-table thead th {
+    @apply text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .data-table tbody td {
+    @apply text-[13px] text-gray-300;
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    vertical-align: middle;
+  }
+  .data-table tbody tr {
+    transition: background 0.15s;
+  }
+  .data-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .data-table .num,
+  .data-table th.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .data-table td.num {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
 }

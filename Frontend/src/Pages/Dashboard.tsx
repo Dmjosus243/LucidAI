@@ -144,7 +144,7 @@ export const Dashboard = () => {
         </div>
 
         <div>
-          <div className="card p-6 sticky top-24">
+          <div className="card p-6 sticky top-20 lg:top-20">
             <div className="flex items-center justify-between mb-4">
               <h3 className="section-title">Historique</h3>
               {history.length > 0 && (

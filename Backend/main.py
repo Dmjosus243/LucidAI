@@ -34,7 +34,16 @@ app.include_router(predict.router, prefix="/api/v1")
 @app.get("/health")
 async def health():
     return {"status": "healthy", "env": config.ENVIRONMENT}
+# ... (imports existants)
+from api.routes import upload, analysis, reports, accounting  # <-- AJOUT
 
+# ... (code existant)
+
+# Inclure les routeurs
+app.include_router(upload.router, prefix="/api/v1")
+app.include_router(analysis.router, prefix="/api/v1")
+app.include_router(reports.router, prefix="/api/v1")
+app.include_router(accounting.router, prefix="/api/v1")  # <-- AJOUT
 if __name__ == "__main__":
     import uvicorn
     # reload=False pour éviter le respawn du worker (multiprocessing) qui

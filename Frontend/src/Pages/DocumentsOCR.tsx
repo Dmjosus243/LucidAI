@@ -179,32 +179,32 @@ export const DocumentsOCR = () => {
         <h2 className="section-title mb-4">Écritures comptables (issues du rapprochement OCR)</h2>
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="data-table">
               <thead>
-                <tr className="text-left text-xs text-gray-500 border-b border-white/10">
-                  <th className="p-3 font-medium">Référence</th>
-                  <th className="p-3 font-medium">Date</th>
-                  <th className="p-3 font-medium">Libellé</th>
-                  <th className="p-3 font-medium text-right">Montant</th>
-                  <th className="p-3 font-medium">Source</th>
-                  <th className="p-3 font-medium text-right">Confiance</th>
+                <tr>
+                  <th>Référence</th>
+                  <th>Date</th>
+                  <th>Libellé</th>
+                  <th className="num">Montant</th>
+                  <th>Source</th>
+                  <th className="num">Confiance</th>
                 </tr>
               </thead>
               <tbody>
                 {entries.map((e) => (
-                  <tr key={e.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                    <td className="p-3 font-mono text-xs text-cyan-400">{e.entry_ref}</td>
-                    <td className="p-3 text-gray-300">{e.date || "-"}</td>
-                    <td className="p-3 text-gray-300">{e.lines?.[0]?.label || "-"}</td>
-                    <td className="p-3 text-right font-mono">
+                  <tr key={e.id}>
+                    <td className="font-mono text-xs text-cyan-400">{e.entry_ref}</td>
+                    <td>{e.date || "-"}</td>
+                    <td>{e.lines?.[0]?.label || "-"}</td>
+                    <td className="num">
                       {(e.lines?.[0]?.amount ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} CDF
                     </td>
-                    <td className="p-3"><span className="badge badge-info">{e.source}</span></td>
-                    <td className="p-3 text-right text-gray-400">{(e.confidence * 100).toFixed(0)}%</td>
+                    <td><span className="badge badge-info">{e.source}</span></td>
+                    <td className="num text-gray-400">{(e.confidence * 100).toFixed(0)}%</td>
                   </tr>
                 ))}
                 {entries.length === 0 && (
-                  <tr><td colSpan={6} className="p-6 text-center text-gray-500 text-sm">Aucune écriture pour le moment.</td></tr>
+                  <tr><td colSpan={6} className="text-center text-gray-500">Aucune écriture pour le moment.</td></tr>
                 )}
               </tbody>
             </table>

@@ -427,7 +427,35 @@ def _create_session(retries=3, delay=1):
             logger.warning("DB connection attempt %d failed: %s", attempt + 1, e)
             time.sleep(delay)
     raise Exception("Impossible de se connecter à la base de données après %d tentatives" % retries)
+# ---------- MODÈLES COMPTABLES ----------
 
+class ChartOfAccount(Base):
+    __tablename__ = "chart_of_accounts"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
+    account_number = Column(String(20), nullable=False)
+    account_name = Column(String, nullable=False)
+    account_type = Column(String(20))
+    parent_id = Column(UUID(as_uuid=True), ForeignKey("chart_of_accounts.id"), nullable=True)
+    is_active = Column(String, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class JournalEntry(Base):
+    __tablename__ = "journal_entries"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)
+    entry_ref = Column(String, nullable=False)
+    date = Column(String)
+    source = Column(String, default="manuel")
+    confidence = Column(Float, default=0.0)
+    lines = Column(JSON, default=[])
+    status = Column(String, default="pending")
+    validated_by = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 def get_db():
     db = None
     try:
