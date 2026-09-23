@@ -62,7 +62,7 @@ async def create_checkout(
         raise HTTPException(400, f"Plan invalide. Choisissez parmi : {', '.join(PLANS.keys())}")
 
     org = _get_org(db, user)
-    plan_char = "P" if plan == "pro" else "E"
+    plan_char = "P" if req.plan == "pro" else "E"
     # Format du ref: LUCID + plan(P/E) + 6 premiers hex de l'org + aléatoire
     transaction_ref = f"LUCID{plan_char}{org.id.hex[:6]}{uuid.uuid4().hex[:6]}".upper()
 

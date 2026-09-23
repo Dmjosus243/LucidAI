@@ -11,9 +11,6 @@ interface Props {
   saving: boolean;
 }
 
-const fmt = (v?: number | null) =>
-  v == null ? "" : v.toLocaleString("fr-FR", { minimumFractionDigits: 2 });
-
 export const OcrReview = ({ filename, initialLines, onSave, onReject, onClose, saving }: Props) => {
   const [lines, setLines] = useState<OcrLine[]>(
     initialLines.map((l) => ({ ...l }))

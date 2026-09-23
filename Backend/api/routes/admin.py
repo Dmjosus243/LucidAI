@@ -324,7 +324,7 @@ async def export_audit_logs(
     buf.seek(0)
     log_action(
         db, str(user.id), "audit.export",
-        {"count": len(logs)}, request=None,
+        {"count": len(logs)},
     )
     return Response(
         content=buf.getvalue(),

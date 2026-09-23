@@ -442,20 +442,6 @@ class ChartOfAccount(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
-class JournalEntry(Base):
-    __tablename__ = "journal_entries"
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)
-    entry_ref = Column(String, nullable=False)
-    date = Column(String)
-    source = Column(String, default="manuel")
-    confidence = Column(Float, default=0.0)
-    lines = Column(JSON, default=[])
-    status = Column(String, default="pending")
-    validated_by = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 def get_db():
     db = None
     try:

@@ -1,12 +1,12 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 import uuid
-import asyncio
 import logging
 import datetime
+import io
+import pandas as pd
 
-from database import get_db, Analysis
-from storage import temp_storage, analysis_storage
+from database import get_db, Analysis, supabase # supabase doit être importé de ta config
 from agents.orchestrator import orchestrator
 from api.dependencies import get_current_user
 from api.audit import log_action
@@ -16,25 +16,70 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+def run_analysis_task(analysis_id: str, file_path: str, filename: str):
+    """
+    Tâche exécutée en arrière-plan (Background Task).
+    Elle télécharge le fichier depuis Supabase, l'analyse avec LangGraph,
+    puis met à jour la base de données PostgreSQL.
+    """
+    # Note: On doit instancier une nouvelle session DB pour la tâche asynchrone
+    from database import SessionLocal
+    db = SessionLocal()
+    
+    try:
+        # 1. Télécharger le fichier CSV depuis Supabase Storage
+        response = supabase.storage.from_("documents_comptables").download(file_path)
+        
+        # 2. Charger dans Pandas
+        df = pd.read_csv(io.BytesIO(response))
+        
+        # 3. Exécuter le graphe d'agents LangGraph (synchronement dans ce thread séparé)
+        result = orchestrator.run(df, filename)
+        
+        # 4. Mettre à jour le statut dans la BDD (PostgreSQL)
+        db_analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
+        if db_analysis:
+            db_analysis.status = "done"
+            db_analysis.risk_score = result.get("risk_score", 0.0)
+            db_analysis.anomalies = result.get("anomalies", [])
+            db_analysis.report_path = result.get("report_path", "")
+            db_analysis.completed_at = datetime.datetime.utcnow()
+            db.commit()
+
+    except Exception as e:
+        logger.error(f"Erreur d'analyse pour {analysis_id} : {str(e)}")
+        db_analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
+        if db_analysis:
+            db_analysis.status = "error"
+            db.commit()
+    finally:
+        db.close()
+
+
 @router.post("/analyze/{file_id}")
 async def start_analysis(
     file_id: str,
+    background_tasks: BackgroundTasks, # Injection du gestionnaire de tâches FastAPI
     request: Request = None,
     db: Session = Depends(get_db),
     user: Profile = Depends(get_current_user),
 ):
-    if file_id not in temp_storage:
-        raise HTTPException(404, "Fichier non trouvé ou expiré")
+    # 1. Vérifier si le fichier existe dans notre base de données (au lieu de temp_storage)
+    # Remplacer 'OcrDocument' par le nom exact de ton modèle SQLAlchemy qui stocke l'upload
+    # doc = db.query(OcrDocument).filter(OcrDocument.id == file_id, OcrDocument.organization_id == user.organization_id).first()
+    # Si ton modèle upload n'est pas encore prêt, tu peux simuler en construisant le chemin:
+    filename = f"fichier_{file_id}.csv" 
+    storage_path = f"{user.organization_id}/{file_id}.csv" 
     
-    data = temp_storage[file_id]
     analysis_id = str(uuid.uuid4())
     
+    # 2. Créer l'enregistrement de l'analyse avec statut "processing"
     db_analysis = Analysis(
         id=analysis_id,
         user_id=user.id,
-        organization_id=user.organization_id,
+        organization_id=user.organization_id, # Isolation Multi-tenant !
         file_id=file_id,
-        filename=data["filename"],
+        filename=filename,
         status="processing"
     )
     db.add(db_analysis)
@@ -42,35 +87,15 @@ async def start_analysis(
 
     log_action(
         db, str(user.id), "analysis.start",
-        {"filename": data["filename"], "analysis_id": analysis_id},
+        {"filename": filename, "analysis_id": analysis_id},
         request.client.host if request and request.client else None,
     )
     
-    try:
-        result = await asyncio.to_thread(orchestrator.run, data["df"], data["filename"])
-        
-        db_analysis.status = "done"
-        db_analysis.risk_score = result.get("risk_score", 0.0)
-        db_analysis.anomalies = result.get("anomalies", [])
-        db_analysis.report_path = result.get("report_path", "")
-        db_analysis.completed_at = datetime.datetime.utcnow()
-        db.commit()
-        
-        analysis_storage[analysis_id] = {
-            "status": "done",
-            "result": result,
-            "filename": data["filename"]
-        }
-        
-        del temp_storage[file_id]
-        
-        return {"analysis_id": analysis_id, "status": "processing"}
-        
-    except Exception as e:
-        db_analysis.status = "error"
-        db.commit()
-        logger.error("Erreur d'analyse pour %s : %s", file_id, e)
-        raise HTTPException(500, f"Erreur d'analyse: {str(e)}")
+    # 3. Déléguer le traitement long à BackgroundTasks
+    background_tasks.add_task(run_analysis_task, analysis_id, storage_path, filename)
+    
+    # 4. Retourner immédiatement 202 Accepted au Frontend React
+    return {"analysis_id": analysis_id, "status": "processing", "message": "Analyse démarrée en arrière-plan"}
 
 @router.get("/results/{analysis_id}")
 async def get_results(
@@ -78,24 +103,12 @@ async def get_results(
     db: Session = Depends(get_db),
     user: Profile = Depends(get_current_user),
 ):
-    if analysis_id in analysis_storage:
-        data = analysis_storage[analysis_id]
-        if data["status"] == "done":
-            result = data["result"]
-            return {
-                "status": "done",
-                "risk_score": result.get("risk_score", 0),
-                "anomalies": result.get("anomalies", []),
-                "report_path": result.get("report_path", ""),
-                "filename": data.get("filename", "")
-            }
-        else:
-            return {"status": "pending"}
-    
+    # Lecture exclusive depuis la base de données (plus de analysis_storage)
     db_analysis = db.query(Analysis).filter(
         Analysis.id == analysis_id,
-        Analysis.user_id == user.id
+        Analysis.organization_id == user.organization_id # Isolation !
     ).first()
+    
     if not db_analysis:
         raise HTTPException(404, "Analyse non trouvée")
     
@@ -108,9 +121,9 @@ async def get_results(
             "filename": db_analysis.filename
         }
     elif db_analysis.status == "processing":
-        return {"status": "pending"}
+        return {"status": "processing"}
     else:
-        return {"status": db_analysis.status, "error": "Une erreur est survenue"}
+        return {"status": db_analysis.status, "error": "Une erreur est survenue lors de l'analyse"}
 
 @router.get("/history")
 async def get_history(
@@ -119,14 +132,16 @@ async def get_history(
     skip: int = 0,
     limit: int = 20,
 ):
+    # Historique filtré par organisation
     analyses = (
         db.query(Analysis)
-        .filter(Analysis.user_id == user.id)
+        .filter(Analysis.organization_id == user.organization_id)
         .order_by(Analysis.created_at.desc())
         .offset(skip)
         .limit(limit)
         .all()
     )
+    
     return [
         {
             "id": str(a.id),

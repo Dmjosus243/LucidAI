@@ -21,11 +21,17 @@ async def download_report(
         if data["status"] == "done":
             report_path = data.get("result", {}).get("report_path", "")
             if report_path and os.path.exists(report_path):
-                return FileResponse(
-                    report_path,
-                    media_type="application/pdf",
-                    filename=f"lucidai_audit_{analysis_id}.pdf"
-                )
+                # Vérifier l'ownership avant de servir
+                db_check = db.query(Analysis).filter(
+                    Analysis.id == analysis_id,
+                    Analysis.user_id == user.id,
+                ).first()
+                if db_check:
+                    return FileResponse(
+                        report_path,
+                        media_type="application/pdf",
+                        filename=f"lucidai_audit_{analysis_id}.pdf"
+                    )
 
     db_analysis = db.query(Analysis).filter(
         Analysis.id == analysis_id,

@@ -32,7 +32,6 @@ export const DocumentsOCR = () => {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
     getOcrDocuments().then((res) => setDocs(res.data)).catch(() => {});
@@ -160,7 +159,6 @@ export const DocumentsOCR = () => {
                     <button
                       onClick={() => { setReviewDoc(d); setError(""); }}
                       className="btn-primary !py-1.5 !px-4 text-xs"
-                      disabled={busy}
                     >
                       Vérifier
                     </button>
